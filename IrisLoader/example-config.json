@@ -1,0 +1,5 @@
+{
+  "Token": "token",
+  "MySqlPassword": "password",
+  "UseShardedLoader": false
+}
