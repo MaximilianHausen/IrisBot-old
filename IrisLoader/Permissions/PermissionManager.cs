@@ -12,7 +12,7 @@ namespace IrisLoader.Permissions
 		private static MySqlCommand cmd = new MySqlCommand();
 		private static List<IrisPermission> permissions = new List<IrisPermission>();
 
-		public static void Initialize(string mySqlPassword)
+		internal static void Initialize(string mySqlPassword)
 		{
 			string cs = "server=localhost;userid=root;password=" + mySqlPassword;
 
@@ -39,7 +39,7 @@ namespace IrisLoader.Permissions
 			else
 				permissions.Add(permission);
 		}
-		public static IrisPermission[] GetRegisteredPermissions()
+		internal static IrisPermission[] GetRegisteredPermissions()
 		{
 			return permissions.ToArray();
 		}
@@ -51,7 +51,7 @@ namespace IrisLoader.Permissions
 			return reader.HasRows;
 		}
 		public static bool HasPermission(DiscordMember member, string permission) => member.Roles.Any(r => HasPermission(member.Guild, r, permission));
-
+		
 		public static void SetPermission(DiscordGuild guild, DiscordRole role, string permission, bool value)
 		{
 			if (value && !HasPermission(guild, role, permission))

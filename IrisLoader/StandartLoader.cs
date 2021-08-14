@@ -29,38 +29,26 @@ namespace IrisLoader
 				MinimumLogLevel = LogLevel.Information
 			});
 
+			client.UseInteractivity();
+			var slash = client.UseSlashCommands();
+			slash.RegisterCommands<LoaderCommands>();
+
 			await LoadAllGlobalModulesAsync();
 			// Register loader permissions
 			PermissionManager.RegisterPermission(new IrisPermission("ManagePermissions", null));
 			PermissionManager.RegisterPermission(new IrisPermission("ToggleModules", null));
 			PermissionManager.RegisterPermission(new IrisPermission("ManageModules", null));
-			// Register global permissions
-			//globalModules.Values.Select(m => m.module).ForEach(m => m.GetPermissions().ForEach(p => PermissionManager.RegisterPermission(new IrisPermission(p, null))));
-
-			client.UseInteractivity();
-
-			// Register commands
-			var slash = client.UseSlashCommands();
-			slash.RegisterCommands<LoaderCommands>();
 
 			// Register startup events
 			client.GuildDownloadCompleted += Ready;
 
 			await client.ConnectAsync();
-			// Reset Slash commands
-			/*Console.ReadLine();
-			foreach (var item in client.Guilds.Values)
-			{
-				Console.WriteLine("Deleted all Global Slash-Commands");
-				await client.BulkOverwriteGlobalApplicationCommandsAsync(Array.Empty<DiscordApplicationCommand>());
-			}*/
-
 			Console.ReadLine();
 			await client.DisconnectAsync();
 		}
 
-		public override DiscordClient GetClient(ulong? guildId) => client;
-		public override ILogger GetLogger() => client.Logger;
+		internal override DiscordClient GetClient(ulong? guildId) => client;
+		internal override ILogger GetLogger() => client.Logger;
 
 		private Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
 		{

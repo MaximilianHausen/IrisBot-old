@@ -29,19 +29,15 @@ namespace IrisLoader
 				MinimumLogLevel = LogLevel.Information
 			});
 
+			await client.UseInteractivityAsync();
+			var slash = await client.UseSlashCommandsAsync();
+			slash.RegisterCommands<LoaderCommands>();
+
 			await LoadAllGlobalModulesAsync();
 			// Register loader permissions
 			PermissionManager.RegisterPermission(new IrisPermission("ManagePermissions", null));
 			PermissionManager.RegisterPermission(new IrisPermission("ToggleModules", null));
 			PermissionManager.RegisterPermission(new IrisPermission("ManageModules", null));
-			// Register global permissions
-			//globalModules.Values.Select(m => m.module).ForEach(m => m.GetPermissions().ForEach(p => PermissionManager.RegisterPermission(new IrisPermission(p, null))));
-
-			await client.UseInteractivityAsync();
-
-			// Register commands
-			var slash = await client.UseSlashCommandsAsync();
-			slash.RegisterCommands<LoaderCommands>();
 
 			// Register startup events
 			client.GuildDownloadCompleted += Ready;
@@ -51,8 +47,8 @@ namespace IrisLoader
 			await client.StopAsync();
 		}
 
-		public override DiscordClient GetClient(ulong? guildId) => guildId == null ? client.ShardClients[0] : client.GetShard(guildId.Value);
-		public override ILogger GetLogger() => client.Logger;
+		internal override DiscordClient GetClient(ulong? guildId) => guildId == null ? client.ShardClients[0] : client.GetShard(guildId.Value);
+		internal override ILogger GetLogger() => client.Logger;
 
 		private Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
 		{

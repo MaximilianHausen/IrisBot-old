@@ -25,7 +25,7 @@ namespace IrisLoader
 		protected Dictionary<string, IrisModuleReference> globalModules = new Dictionary<string, IrisModuleReference>();
 		protected Dictionary<ulong, Dictionary<string, IrisModuleReference>> guildModules = new Dictionary<ulong, Dictionary<string, IrisModuleReference>>();
 
-		public IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
+		internal IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
 		{
 			if (guildId == null)
 			{
@@ -52,14 +52,14 @@ namespace IrisLoader
 			isGlobal = false;
 			return default;
 		}
-		public Dictionary<string, IrisModuleReference> GetGlobalModules() => globalModules;
-		public Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
+		internal Dictionary<string, IrisModuleReference> GetGlobalModules() => globalModules;
+		internal Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
 
-		public abstract DiscordClient GetClient(ulong? guildId);
+		internal abstract DiscordClient GetClient(ulong? guildId);
 		#warning Solve naming and make property
-		public abstract ILogger GetLogger();
+		internal abstract ILogger GetLogger();
 
-		public Task<bool> IsValidModule(string path)
+		internal Task<bool> IsValidModule(string path)
 		{
 			// To absolute path
 			if (path.StartsWith('.'))
@@ -93,7 +93,7 @@ namespace IrisLoader
 			Directory.CreateDirectory("./Modules/Global");
 			return new DirectoryInfo("./Modules/Global");
 		}
-		public async Task<bool> LoadGlobalModuleAsync(string name)
+		internal async Task<bool> LoadGlobalModuleAsync(string name)
 		{
 			bool success = false;
 
@@ -132,7 +132,7 @@ namespace IrisLoader
 			Logger.Log(success ? LogLevel.Information : LogLevel.Error, 0, "ModuleLoader", (success ? "Global module loaded: " : "Global module could not be loaded: ") + name);
 			return success;
 		}
-		public async Task<(int, int)> LoadAllGlobalModulesAsync()
+		internal async Task<(int, int)> LoadAllGlobalModulesAsync()
 		{
 			int moduleCount = 0;
 			int loadedCount = 0;
@@ -151,7 +151,7 @@ namespace IrisLoader
 			return (loadedCount, moduleCount);
 		}
 
-		public async Task<bool> UnloadGlobalModuleAsync(string name)
+		internal async Task<bool> UnloadGlobalModuleAsync(string name)
 		{
 			bool isLoaded = globalModules.TryGetValue(name, out IrisModuleReference toUnload);
 			if (!isLoaded)
@@ -167,7 +167,7 @@ namespace IrisLoader
 			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
 			return true;
 		}
-		public async Task<(int, int)> UnloadAllGlobalModulesAsync()
+		internal async Task<(int, int)> UnloadAllGlobalModulesAsync()
 		{
 			int moduleCount = 0;
 			int unloadedCount = 0;
