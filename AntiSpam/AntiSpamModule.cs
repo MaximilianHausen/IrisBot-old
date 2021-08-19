@@ -1,6 +1,6 @@
-﻿using System;
+﻿using IrisLoader.Modules;
+using System;
 using System.Threading.Tasks;
-using IrisLoader.Modules;
 
 namespace AntiSpam
 {

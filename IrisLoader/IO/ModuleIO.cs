@@ -35,7 +35,7 @@ namespace IrisLoader.IO
 		}
 		public static DirectoryInfo GetGuildFileDirectory(DiscordGuild guild)
 		{
-			DirectoryInfo dir = new DirectoryInfo("./ModuleFiles/" + guild.Name + '~' + guild.Id);
+			DirectoryInfo dir = new DirectoryInfo("./ModuleFiles/" + guild.Id);
 			Directory.CreateDirectory(dir.FullName);
 			return dir;
 		}

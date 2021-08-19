@@ -56,7 +56,7 @@ namespace IrisLoader
 		internal Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
 
 		internal abstract DiscordClient GetClient(ulong? guildId);
-		#warning Solve naming and make property
+#warning Solve naming and make property
 		internal abstract ILogger GetLogger();
 
 		internal Task<bool> IsValidModule(string path)
