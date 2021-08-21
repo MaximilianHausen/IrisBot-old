@@ -353,7 +353,7 @@ namespace IrisLoader.Commands
 						#endregion
 						if (!PermissionManager.HasPermission(ctx.Member, "ManageModules") && !ctx.Member.Permissions.HasPermission(DSharpPlus.Permissions.Administrator))
 						{
-							#warning Unload guild before delete
+#warning Unload guild before delete
 							File.Delete(moduleReference.file.FullName);
 							var embedBuilder = new ModernEmbedBuilder
 							{

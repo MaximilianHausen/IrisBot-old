@@ -33,11 +33,8 @@ namespace IrisLoader
 			var slash = await client.UseSlashCommandsAsync();
 			slash.RegisterCommands<LoaderCommands>();
 
+			PermissionManager.RegisterPermissions<LoaderCommands>(null);
 			await LoadAllGlobalModulesAsync();
-			// Register loader permissions
-			PermissionManager.RegisterPermission(new IrisPermission("ManagePermissions", null));
-			PermissionManager.RegisterPermission(new IrisPermission("ToggleModules", null));
-			PermissionManager.RegisterPermission(new IrisPermission("ManageModules", null));
 
 			// Register startup events
 			client.GuildDownloadCompleted += Ready;
@@ -56,7 +53,7 @@ namespace IrisLoader
 			string guildList = "Iris is on the following Servers: ";
 			foreach (var guild in client.Guilds.Values) { guildList += guild.Name + '@' + guild.Id + ", "; }
 			guildList = guildList.Remove(guildList.Length - 2, 2);
-			Logger.Log(Microsoft.Extensions.Logging.LogLevel.Information, 0, "Startup", guildList);
+			Logger.Log(LogLevel.Information, 0, "Startup", guildList);
 			return Task.CompletedTask;
 		}
 	}

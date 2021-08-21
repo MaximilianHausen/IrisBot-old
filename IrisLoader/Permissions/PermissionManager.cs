@@ -1,8 +1,12 @@
 ﻿using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using IrisLoader.Commands;
+using MoreLinq;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace IrisLoader.Permissions
 {
@@ -32,16 +36,27 @@ namespace IrisLoader.Permissions
 			cmd.ExecuteNonQuery();
 		}
 
-		public static void RegisterPermission(IrisPermission permission)
+		internal static IrisPermission[] GetRegisteredPermissions()
+		{
+			return permissions.ToArray();
+		}
+		private static void RegisterPermission(IrisPermission permission)
 		{
 			if (permissions.Where(p => !p.guildId.HasValue || p.guildId == permission.guildId).Select(p => p.name).Contains(permission.name))
 				Logger.Log(Microsoft.Extensions.Logging.LogLevel.Error, 0, "Permissions", $"Permission registration{(permission.guildId.HasValue ? $" for guild \"{permission.guildId.Value}\"" : "")} failed: \"{permission.name}\" already registered");
 			else
 				permissions.Add(permission);
 		}
-		internal static IrisPermission[] GetRegisteredPermissions()
+		public static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => RegisterPermissions(typeof(T), guild?.Id);
+		private static void RegisterPermissions(Type type, ulong? guildId)
 		{
-			return permissions.ToArray();
+			List<IRequireIrisPermissionAttribute> attributes = new List<IRequireIrisPermissionAttribute>();
+			type.GetMethods().ForEach(m => m.GetCustomAttributes<SlashRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
+			type.GetMethods().ForEach(m => m.GetCustomAttributes<ContextMenuRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
+
+			attributes.Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guildId)));
+
+			type.GetNestedTypes().ForEach(t => RegisterPermissions(t, guildId));
 		}
 
 		public static bool HasPermission(DiscordGuild guild, DiscordRole role, string permission)
@@ -51,7 +66,7 @@ namespace IrisLoader.Permissions
 			return reader.HasRows;
 		}
 		public static bool HasPermission(DiscordMember member, string permission) => member.Roles.Any(r => HasPermission(member.Guild, r, permission));
-		
+
 		public static void SetPermission(DiscordGuild guild, DiscordRole role, string permission, bool value)
 		{
 			if (value && !HasPermission(guild, role, permission))
