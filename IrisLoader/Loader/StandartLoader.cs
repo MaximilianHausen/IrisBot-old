@@ -7,20 +7,20 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace IrisLoader
+namespace IrisLoader.Loader
 {
-	public class ShardedLoader : Loader
+	internal class StandartLoader : BaseLoader
 	{
-		public ShardedLoader(Config config) : base(config) { }
+		internal StandartLoader(Config config) : base(config) { }
 
-		private DiscordShardedClient client;
+		private DiscordClient client;
 
-		public override async Task MainAsync()
+		internal override async Task MainAsync()
 		{
 			PermissionManager.Initialize(config.MySqlPassword);
 
 			// Create client
-			client = new DiscordShardedClient(new DiscordConfiguration
+			client = new DiscordClient(new DiscordConfiguration
 			{
 				Token = config.Token,
 				TokenType = TokenType.Bot,
@@ -29,8 +29,8 @@ namespace IrisLoader
 				MinimumLogLevel = LogLevel.Information
 			});
 
-			await client.UseInteractivityAsync();
-			var slash = await client.UseSlashCommandsAsync();
+			client.UseInteractivity();
+			var slash = client.UseSlashCommands();
 			slash.RegisterCommands<LoaderCommands>();
 
 			PermissionManager.RegisterPermissions<LoaderCommands>(null);
@@ -39,12 +39,12 @@ namespace IrisLoader
 			// Register startup events
 			client.GuildDownloadCompleted += Ready;
 
-			await client.StartAsync();
+			await client.ConnectAsync();
 			Console.ReadLine();
-			await client.StopAsync();
+			await client.DisconnectAsync();
 		}
 
-		internal override DiscordClient GetClient(ulong? guildId) => guildId == null ? client.ShardClients[0] : client.GetShard(guildId.Value);
+		internal override DiscordClient GetClient(ulong? guildId) => client;
 		internal override ILogger GetLogger() => client.Logger;
 
 		private Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)

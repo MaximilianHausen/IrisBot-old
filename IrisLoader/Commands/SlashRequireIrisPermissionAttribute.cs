@@ -28,9 +28,9 @@ namespace IrisLoader.Commands
 					Title = "Berechtigung gesetzt",
 					Color = 0xED4245,
 					Fields =
-						{
-							("Details", $"Um diesen Command zu verwenden ist die Iris-Berechtigung `{Permission}` benötigt")
-						}
+					{
+						("Details", $"Um diesen Command zu verwenden ist die Iris-Berechtigung `{Permission}` benötigt")
+					}
 				};
 
 				await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));

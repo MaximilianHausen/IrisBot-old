@@ -1,9 +1,9 @@
 ﻿namespace IrisLoader
 {
-	public class Config
+	internal class Config
 	{
-		public string Token { get; set; }
-		public string MySqlPassword { get; set; }
-		public bool UseShardedLoader { get; set; }
+		internal string Token { get; set; }
+		internal string MySqlPassword { get; set; }
+		internal bool UseShardedLoader { get; set; }
 	}
 }

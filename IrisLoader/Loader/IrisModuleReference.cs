@@ -1,15 +1,16 @@
-﻿using System.IO;
+﻿using IrisLoader.Modules;
+using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace IrisLoader.Modules
+namespace IrisLoader.Loader
 {
-	public struct IrisModuleReference
+	internal struct IrisModuleReference
 	{
-		public IrisModule module;
-		public Assembly assembly;
-		public AssemblyLoadContext context;
-		public FileInfo file;
+		internal IrisModule module;
+		internal Assembly assembly;
+		internal AssemblyLoadContext context;
+		internal FileInfo file;
 
 		public IrisModuleReference(IrisModule module, Assembly assembly, AssemblyLoadContext context, FileInfo file)
 		{

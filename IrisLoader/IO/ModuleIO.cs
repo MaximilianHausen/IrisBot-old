@@ -27,13 +27,13 @@ namespace IrisLoader.IO
 			File.WriteAllText(filePath, jsonString);
 		}
 
-		public static DirectoryInfo GetModuleFileDirectory(DiscordGuild guild, string moduleName)
+		internal static DirectoryInfo GetModuleFileDirectory(DiscordGuild guild, string moduleName)
 		{
 			DirectoryInfo dir = new DirectoryInfo(GetGuildFileDirectory(guild).FullName + '/' + moduleName);
 			Directory.CreateDirectory(dir.FullName);
 			return dir;
 		}
-		public static DirectoryInfo GetGuildFileDirectory(DiscordGuild guild)
+		internal static DirectoryInfo GetGuildFileDirectory(DiscordGuild guild)
 		{
 			DirectoryInfo dir = new DirectoryInfo("./ModuleFiles/" + guild.Id);
 			Directory.CreateDirectory(dir.FullName);

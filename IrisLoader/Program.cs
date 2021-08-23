@@ -1,13 +1,14 @@
-﻿using System.IO;
+﻿using IrisLoader.Loader;
+using System.IO;
 using System.Text.Json;
 
 namespace IrisLoader
 {
-	public class Program
+	internal class Program
 	{
-		public static Loader ActiveLoader { get; private set; }
+		internal static BaseLoader ActiveLoader { get; private set; }
 
-		static void Main(string[] args)
+		internal static void Main()
 		{
 			string configString = File.ReadAllText("./config.json");
 			Config config = JsonSerializer.Deserialize<Config>(configString);

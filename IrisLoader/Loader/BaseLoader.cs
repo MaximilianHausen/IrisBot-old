@@ -9,16 +9,16 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 
-namespace IrisLoader
+namespace IrisLoader.Loader
 {
-	public abstract class Loader
+	internal abstract class BaseLoader
 	{
-		public Loader(Config config)
+		internal BaseLoader(Config config)
 		{
 			this.config = config;
 		}
 
-		public abstract Task MainAsync();
+		internal abstract Task MainAsync();
 
 		protected Config config;
 
