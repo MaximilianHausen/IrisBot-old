@@ -1,5 +1,9 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.SlashCommands;
+using IrisLoader.Commands;
 using IrisLoader.Modules;
+using IrisLoader.Permissions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -7,25 +11,64 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace IrisLoader.Loader
+namespace IrisLoader
 {
-	internal abstract class BaseLoader
+	internal static class Loader
 	{
-		internal BaseLoader(Config config)
+		static Loader()
 		{
-			this.config = config;
+			string configString = File.ReadAllText("./config.json");
+			config = JsonSerializer.Deserialize<Config>(configString);
 		}
 
-		internal abstract Task MainAsync();
+		public static readonly Config config;
+		private static DiscordShardedClient client;
+		private static Dictionary<string, IrisModuleReference> globalModules = new();
+		private static Dictionary<ulong, Dictionary<string, IrisModuleReference>> guildModules = new();
 
-		protected Config config;
+		internal static void Main() => MainAsync().GetAwaiter().GetResult();
+		internal static async Task MainAsync()
+		{
+			// Create client
+			client = new DiscordShardedClient(new DiscordConfiguration
+			{
+				Token = config.Token,
+				TokenType = TokenType.Bot,
+				Intents = DiscordIntents.AllUnprivileged,
+				LogTimestampFormat = "d/M/yyyy hh:mm:ss",
+				MinimumLogLevel = LogLevel.Information
+			});
 
-		protected Dictionary<string, IrisModuleReference> globalModules = new Dictionary<string, IrisModuleReference>();
-		protected Dictionary<ulong, Dictionary<string, IrisModuleReference>> guildModules = new Dictionary<ulong, Dictionary<string, IrisModuleReference>>();
+			await client.UseInteractivityAsync();
+			var slash = await client.UseSlashCommandsAsync();
+			slash.RegisterCommands<LoaderCommands>();
 
-		internal IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
+			PermissionManager.RegisterPermissions<LoaderCommands>(null);
+			await LoadAllGlobalModulesAsync();
+
+			// Register startup events
+			client.GuildDownloadCompleted += Ready;
+
+			await client.StartAsync();
+			Console.ReadLine();
+			await client.StopAsync();
+		}
+
+		private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
+		{
+			// List available guilds
+			string guildList = "Iris is on the following Servers: ";
+			foreach (var guild in client.Guilds.Values) { guildList += guild.Name + '@' + guild.Id + ", "; }
+			guildList = guildList.Remove(guildList.Length - 2, 2);
+			Logger.Log(LogLevel.Information, 0, "Startup", guildList);
+			return Task.CompletedTask;
+		}
+
+		internal static DiscordShardedClient GetClient() => client;
+		internal static IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
 		{
 			if (guildId == null)
 			{
@@ -52,14 +95,7 @@ namespace IrisLoader.Loader
 			isGlobal = false;
 			return default;
 		}
-		internal Dictionary<string, IrisModuleReference> GetGlobalModules() => globalModules;
-		internal Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
-
-		internal abstract DiscordClient GetClient(ulong? guildId);
-#warning Solve naming and make property
-		internal abstract ILogger GetLogger();
-
-		internal Task<bool> IsValidModule(string path)
+		internal static Task<bool> IsValidModule(string path)
 		{
 			// To absolute path
 			if (path.StartsWith('.'))
@@ -88,12 +124,13 @@ namespace IrisLoader.Loader
 		}
 
 		#region Global Modules
-		private DirectoryInfo GetGlobalModuleDirectory()
+		private static DirectoryInfo GetGlobalModuleDirectory()
 		{
 			Directory.CreateDirectory("./Modules/Global");
 			return new DirectoryInfo("./Modules/Global");
 		}
-		internal async Task<bool> LoadGlobalModuleAsync(string name)
+		internal static Dictionary<string, IrisModuleReference> GetGlobalModules() => globalModules;
+		internal static async Task<bool> LoadGlobalModuleAsync(string name)
 		{
 			bool success = false;
 
@@ -132,7 +169,7 @@ namespace IrisLoader.Loader
 			Logger.Log(success ? LogLevel.Information : LogLevel.Error, 0, "ModuleLoader", (success ? "Global module loaded: " : "Global module could not be loaded: ") + name);
 			return success;
 		}
-		internal async Task<(int, int)> LoadAllGlobalModulesAsync()
+		internal static async Task<(int, int)> LoadAllGlobalModulesAsync()
 		{
 			int moduleCount = 0;
 			int loadedCount = 0;
@@ -151,7 +188,7 @@ namespace IrisLoader.Loader
 			return (loadedCount, moduleCount);
 		}
 
-		internal async Task<bool> UnloadGlobalModuleAsync(string name)
+		internal static async Task<bool> UnloadGlobalModuleAsync(string name)
 		{
 			bool isLoaded = globalModules.TryGetValue(name, out IrisModuleReference toUnload);
 			if (!isLoaded)
@@ -167,7 +204,7 @@ namespace IrisLoader.Loader
 			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
 			return true;
 		}
-		internal async Task<(int, int)> UnloadAllGlobalModulesAsync()
+		internal static async Task<(int, int)> UnloadAllGlobalModulesAsync()
 		{
 			int moduleCount = 0;
 			int unloadedCount = 0;
@@ -181,6 +218,9 @@ namespace IrisLoader.Loader
 			Logger.Log(unloadedCount == moduleCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{moduleCount} global modules");
 			return (unloadedCount, moduleCount);
 		}
+		#endregion
+		#region Guild Modules
+		internal static Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
 		#endregion
 	}
 }

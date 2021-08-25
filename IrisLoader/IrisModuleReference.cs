@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace IrisLoader.Loader
+namespace IrisLoader
 {
 	internal struct IrisModuleReference
 	{

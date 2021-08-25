@@ -4,7 +4,6 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
-using IrisLoader.Loader;
 using IrisLoader.Modules;
 using IrisLoader.Permissions;
 using MoreLinq;
@@ -33,8 +32,8 @@ namespace IrisLoader.Commands
 					ModernEmbedBuilder embedBuilder;
 					// name, active, true:global/false:guild
 					List<(string, bool, bool)> moduleList = new List<(string, bool, bool)>();
-					Program.ActiveLoader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), true)));
-					Program.ActiveLoader.GetGuildModules(ctx.Guild.Id).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), false)));
+					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), true)));
+					Loader.GetGuildModules(ctx.Guild.Id).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), false)));
 
 					if (moduleList.Count > 0)
 					{
@@ -77,7 +76,7 @@ namespace IrisLoader.Commands
 				{
 					ModernEmbedBuilder embedBuilder;
 					bool prevState;
-					IrisModule module = Program.ActiveLoader.GetModule(ctx.Guild.Id, moduleName, out _).module;
+					IrisModule module = Loader.GetModule(ctx.Guild.Id, moduleName, out _).module;
 
 					// Exit on invalid module
 					if (module == null)
@@ -203,7 +202,7 @@ namespace IrisLoader.Commands
 						}
 
 						// Check Attachment
-						bool isValid = await Program.ActiveLoader.IsValidModule(cachePath);
+						bool isValid = await Loader.IsValidModule(cachePath);
 
 						if (isValid)
 						{
@@ -212,7 +211,7 @@ namespace IrisLoader.Commands
 							Directory.CreateDirectory($"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}");
 							bool needsOverwrite = File.Exists(filePath);
 							if (needsOverwrite)
-								await Program.ActiveLoader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
+								await Loader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
 							File.Move(cachePath, filePath, true);
 
 							// Load Module
@@ -220,7 +219,7 @@ namespace IrisLoader.Commands
 							bool success;
 							if (loadAsGlobal)
 							{
-								success = await Program.ActiveLoader.LoadGlobalModuleAsync(moduleName);
+								success = await Loader.LoadGlobalModuleAsync(moduleName);
 							}
 							else
 							{
@@ -287,7 +286,7 @@ namespace IrisLoader.Commands
 				public async Task DeleteCommand(InteractionContext ctx, [Option("name", "Name des zu löschenden Moduls")] string name)
 				{
 					bool usedByOwner = ctx.Client.CurrentApplication.Owners.Any(x => x.Id == ctx.User.Id);
-					IrisModuleReference moduleReference = Program.ActiveLoader.GetModule(ctx.Guild?.Id, name, out bool isGlobal);
+					IrisModuleReference moduleReference = Loader.GetModule(ctx.Guild?.Id, name, out bool isGlobal);
 
 					if (moduleReference.module == null)
 					{
@@ -308,7 +307,7 @@ namespace IrisLoader.Commands
 					{
 						if (usedByOwner)
 						{
-							await Program.ActiveLoader.UnloadGlobalModuleAsync(name);
+							await Loader.UnloadGlobalModuleAsync(name);
 							File.Delete(moduleReference.file.FullName);
 							var embedBuilder = new ModernEmbedBuilder
 							{

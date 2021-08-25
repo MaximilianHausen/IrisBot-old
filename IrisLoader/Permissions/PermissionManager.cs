@@ -16,9 +16,9 @@ namespace IrisLoader.Permissions
 		private static MySqlCommand cmd = new MySqlCommand();
 		private static List<IrisPermission> permissions = new List<IrisPermission>();
 
-		internal static void Initialize(string mySqlPassword)
+		static PermissionManager()
 		{
-			string cs = "server=localhost;userid=root;password=" + mySqlPassword;
+			string cs = "server=localhost;userid=root;password=" + Loader.config.MySqlPassword;
 
 			con.ConnectionString = cs;
 			cmd.Connection = con;
