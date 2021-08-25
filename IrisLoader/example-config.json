@@ -1,4 +1,5 @@
 {
   "Token": "token",
-  "MySqlPassword": "password"
+  "MySqlPassword": "password",
+  "AssemblyBlacklist": ["AssemblyName1", "AssemblyName2"]
 }

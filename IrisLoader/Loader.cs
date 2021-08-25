@@ -5,6 +5,7 @@ using IrisLoader.Commands;
 using IrisLoader.Modules;
 using IrisLoader.Permissions;
 using Microsoft.Extensions.Logging;
+using MoreLinq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -94,6 +95,47 @@ namespace IrisLoader
 
 			isGlobal = false;
 			return default;
+		}
+		internal static void CheckDependencies(string assemblyPath, out IEnumerable<string> restrictedDependencies)
+		{
+			// Load Assembly
+			AssemblyLoadContext scanContext = new AssemblyLoadContext("ModuleScan", true);
+			Assembly moduleAssembly;
+			using (FileStream fs = new FileStream(assemblyPath, FileMode.Open, FileAccess.Read))
+			{
+				moduleAssembly = scanContext.LoadFromStream(fs);
+			}
+
+			// Scan and unload
+			CheckDependencies(moduleAssembly, out restrictedDependencies);
+			scanContext.Unload();
+			GC.Collect();
+		}
+		internal static void CheckDependencies(Assembly assembly, out IEnumerable<string> restrictedDependencies)
+		{
+			List<string> restrictedList = new List<string>();
+			// Scan dependencies
+			IEnumerable<string> referencedAssemblies = assembly.GetReferencedAssemblies().Select(a => a.Name);
+			restrictedList.AddRange(referencedAssemblies.Where(a => config.AssemblyBlacklist.Contains(a)));
+
+			// Roughly scan namespaces
+			string[] blockedNamespaces = new string[] { "IrisLoader.Modules.Global", "IrisLoader.Modules.Guild" };
+			List<string> usedNamespaces = new List<string>();
+			foreach (Type type in assembly.DefinedTypes)
+			{
+				usedNamespaces.AddRange(type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(f => f.FieldType.Namespace).Distinct());
+				usedNamespaces.AddRange(type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(p => p.PropertyType.Namespace).Distinct());
+				usedNamespaces.AddRange(type.GetEvents(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(e => e.EventHandlerType.Namespace).Distinct());
+				usedNamespaces.AddRange(type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(m => m.ReturnType.Namespace).Distinct());
+				foreach (MethodInfo method in type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+				{
+					usedNamespaces.AddRange(method.GetMethodBody().LocalVariables.Select(v => v.LocalType.Namespace));
+				}
+				usedNamespaces = usedNamespaces.Distinct().ToList();
+			}
+			restrictedList.AddRange(usedNamespaces.Where(n => blockedNamespaces.Contains(n)));
+
+			restrictedDependencies = restrictedList;
 		}
 		internal static Task<bool> IsValidModule(string path)
 		{

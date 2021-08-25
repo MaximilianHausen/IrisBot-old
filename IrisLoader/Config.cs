@@ -4,5 +4,6 @@
 	{
 		internal string Token { get; set; }
 		internal string MySqlPassword { get; set; }
+		internal string[] AssemblyBlacklist { get; set; }
 	}
 }

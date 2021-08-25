@@ -126,7 +126,7 @@ namespace IrisLoader.Commands
 							Color = 0xED4245,
 							Fields =
 							{
-								("Details", $"Nur die Entwickler des Bots (Maxi#2608) können globale Module verwalten")
+								("Details", "Nur die Entwickler des Bots (Maxi#2608) können globale Module verwalten")
 							}
 						};
 						await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
@@ -140,7 +140,7 @@ namespace IrisLoader.Commands
 							Color = 0xED4245,
 							Fields =
 							{
-								("Details", $"Um diesen Command zu verwenden ist die Iris-Berechtigung `ManageModules` benötigt")
+								("Details", "Um diesen Command zu verwenden ist die Iris-Berechtigung `ManageModules` benötigt")
 							}
 						};
 						await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
@@ -173,7 +173,7 @@ namespace IrisLoader.Commands
 					{
 						bool rightUser = m.Author.Id == ctx.User.Id;
 						bool hasFile = m.Attachments.Count == 1;
-						bool isDll = hasFile ? m.Attachments[0].FileName.EndsWith(".dll") : false;
+						bool isDll = hasFile && m.Attachments[0].FileName.EndsWith(".dll");
 						return rightUser && isDll;
 					};
 					InteractivityResult<DiscordMessage> fileInteraction = await ctx.Channel.GetNextMessageAsync(condition, new TimeSpan(0, 0, 30));
@@ -206,38 +206,54 @@ namespace IrisLoader.Commands
 
 						if (isValid)
 						{
-							// Move Module
-							string filePath = $"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}/" + fileInteraction.Result.Attachments[0].FileName;
-							Directory.CreateDirectory($"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}");
-							bool needsOverwrite = File.Exists(filePath);
-							if (needsOverwrite)
-								await Loader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
-							File.Move(cachePath, filePath, true);
+							Loader.CheckDependencies(cachePath, out IEnumerable<string> restrictedDependencies);
+							if (!restrictedDependencies.Any() || (restrictedDependencies.SingleOrDefault() == (loadAsGlobal ? "IrisLoader.Modules.Global" : "IrisLoader.Modules.Guild")))
+							{
+								// Move Module
+								string filePath = $"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}/" + fileInteraction.Result.Attachments[0].FileName;
+								Directory.CreateDirectory($"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}");
+								bool needsOverwrite = File.Exists(filePath);
+								if (needsOverwrite)
+									await Loader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
+								File.Move(cachePath, filePath, true);
 
-							// Load Module
-							string moduleName = AssemblyName.GetAssemblyName(filePath).Name;
-							bool success;
-							if (loadAsGlobal)
-							{
-								success = await Loader.LoadGlobalModuleAsync(moduleName);
-							}
-							else
-							{
-#warning Load as guild
-								success = false;
-							}
-
-							if (success)
-							{
-								responseBuilder = new ModernEmbedBuilder
+								// Load Module
+								string moduleName = AssemblyName.GetAssemblyName(filePath).Name;
+								bool success;
+								if (loadAsGlobal)
 								{
-									Title = "Modul geladen",
-									Color = 0x57F287,
-									Fields =
+									success = await Loader.LoadGlobalModuleAsync(moduleName);
+								}
+								else
+								{
+#warning Load as guild
+									success = false;
+								}
+
+								if (success)
+								{
+									responseBuilder = new ModernEmbedBuilder
 									{
-										("Details", $"\"{moduleName}\" erfolgreich empfangen und als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen")
-									}
-								};
+										Title = "Modul geladen",
+										Color = 0x57F287,
+										Fields =
+										{
+											("Details", $"\"{moduleName}\" erfolgreich empfangen und als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen")
+										}
+									};
+								}
+								else
+								{
+									responseBuilder = new ModernEmbedBuilder
+									{
+										Title = "Fehler",
+										Color = 0xED4245,
+										Fields =
+										{
+											("Details", $"\"{moduleName}\" konnte nicht als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen werden")
+										}
+									};
+								}
 							}
 							else
 							{
@@ -247,7 +263,8 @@ namespace IrisLoader.Commands
 									Color = 0xED4245,
 									Fields =
 									{
-										("Details", $"\"{moduleName}\" konnte nicht als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen werden")
+										("Details", $"Das Modul verwendet unerlaubte Libraries oder Namespaces:\n" +
+										string.Join('\n', "- " + restrictedDependencies))
 									}
 								};
 							}
