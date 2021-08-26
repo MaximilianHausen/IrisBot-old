@@ -1,4 +1,5 @@
 ﻿using DSharpPlus;
+using DSharpPlus.SlashCommands;
 
 namespace IrisLoader.Modules.Global
 {
@@ -6,6 +7,7 @@ namespace IrisLoader.Modules.Global
 	public static class GlobalClientWrapper
 	{
 		/// <summary> No abstraction needed here, global modules can only be uploaded by the developers </summary>
-		public static DiscordShardedClient GetClient() => Loader.GetClient();
+		public static DiscordShardedClient GetClient() => Loader.Client;
+		public static void RegisterCommands<T>() where T : ApplicationCommandModule => Loader.SlashExt.RegisterCommands<T>();
 	}
 }

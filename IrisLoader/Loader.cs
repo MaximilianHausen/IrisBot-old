@@ -26,7 +26,8 @@ namespace IrisLoader
 		}
 
 		public static readonly Config config;
-		private static DiscordShardedClient client;
+		internal static DiscordShardedClient Client { get; private set; }
+		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
 		private static Dictionary<string, IrisModuleReference> globalModules = new();
 		private static Dictionary<ulong, Dictionary<string, IrisModuleReference>> guildModules = new();
 
@@ -34,7 +35,7 @@ namespace IrisLoader
 		internal static async Task MainAsync()
 		{
 			// Create client
-			client = new DiscordShardedClient(new DiscordConfiguration
+			Client = new DiscordShardedClient(new DiscordConfiguration
 			{
 				Token = config.Token,
 				TokenType = TokenType.Bot,
@@ -43,19 +44,19 @@ namespace IrisLoader
 				MinimumLogLevel = LogLevel.Information
 			});
 
-			await client.UseInteractivityAsync();
-			var slash = await client.UseSlashCommandsAsync();
-			slash.RegisterCommands<LoaderCommands>();
+			await Client.UseInteractivityAsync();
+			SlashExt = await Client.UseSlashCommandsAsync();
+			SlashExt.RegisterCommands<LoaderCommands>();
 
 			PermissionManager.RegisterPermissions<LoaderCommands>(null);
 			await LoadAllGlobalModulesAsync();
 
 			// Register startup events
-			client.GuildDownloadCompleted += Ready;
+			Client.GuildDownloadCompleted += Ready;
 
-			await client.StartAsync();
+			await Client.StartAsync();
 			Console.ReadLine();
-			await client.StopAsync();
+			await Client.StopAsync();
 		}
 
 		private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
@@ -68,7 +69,6 @@ namespace IrisLoader
 			return Task.CompletedTask;
 		}
 
-		internal static DiscordShardedClient GetClient() => client;
 		internal static IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
 		{
 			if (guildId == null)

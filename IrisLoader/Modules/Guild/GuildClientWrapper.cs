@@ -1,6 +1,7 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.SlashCommands;
 using Emzi0767.Utilities;
 using System.Threading.Tasks;
 
@@ -14,7 +15,7 @@ namespace IrisLoader.Modules.Guild
 		public GuildClientWrapper(DiscordGuild guild)
 		{
 			guildId = guild.Id;
-			DiscordShardedClient client = Loader.GetClient();
+			DiscordShardedClient client = Loader.Client;
 			client.ChannelCreated += ChannelCreatedHandler;
 			client.ChannelDeleted += ChannelDeletedHandler;
 			client.ChannelPinsUpdated += ChannelPinsUpdatedHandler;
@@ -56,7 +57,7 @@ namespace IrisLoader.Modules.Guild
 		}
 		~GuildClientWrapper()
 		{
-			DiscordShardedClient client = Loader.GetClient();
+			DiscordShardedClient client = Loader.Client;
 			client.ChannelCreated -= ChannelCreatedHandler;
 			client.ChannelDeleted -= ChannelDeletedHandler;
 			client.ChannelPinsUpdated -= ChannelPinsUpdatedHandler;
@@ -96,6 +97,8 @@ namespace IrisLoader.Modules.Guild
 			client.VoiceStateUpdated -= VoiceStateUpdatedHandler;
 			client.WebhooksUpdated -= WebhooksUpdatedHandler;
 		}
+
+		public void RegisterCommands<T>() where T : ApplicationCommandModule => Loader.SlashExt.RegisterCommands<T>(guildId);
 
 		// Yes, I did this manually...
 		private Task ChannelCreatedHandler(DiscordClient client, ChannelCreateEventArgs e) => e.Guild.Id == guildId ? ChannelCreated.Invoke(this, e) : Task.CompletedTask;
@@ -166,7 +169,7 @@ namespace IrisLoader.Modules.Guild
 		public event AsyncEventHandler<GuildClientWrapper, MessageBulkDeleteEventArgs> MessagesBulkDeleted;
 		private Task MessageUpdatedHandler(DiscordClient client, MessageUpdateEventArgs e) => e.Guild.Id == guildId ? MessageUpdated.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildClientWrapper, MessageUpdateEventArgs> MessageUpdated;
-		private Task PresenceUpdatedHandler(DiscordClient client, PresenceUpdateEventArgs e) => Loader.GetClient().GetShard(guildId).GetGuildAsync(guildId).GetAwaiter().GetResult().Members.ContainsKey(e.User.Id) ? PresenceUpdated.Invoke(this, e) : Task.CompletedTask;
+		private Task PresenceUpdatedHandler(DiscordClient client, PresenceUpdateEventArgs e) => Loader.Client.GetShard(guildId).GetGuildAsync(guildId).GetAwaiter().GetResult().Members.ContainsKey(e.User.Id) ? PresenceUpdated.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildClientWrapper, PresenceUpdateEventArgs> PresenceUpdated;
 		private Task TypingStartedHandler(DiscordClient client, TypingStartEventArgs e) => e.Guild.Id == guildId ? TypingStarted.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildClientWrapper, TypingStartEventArgs> TypingStarted;
