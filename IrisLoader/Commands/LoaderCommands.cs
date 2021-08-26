@@ -263,7 +263,7 @@ namespace IrisLoader.Commands
 									Color = 0xED4245,
 									Fields =
 									{
-										("Details", $"Das Modul verwendet unerlaubte Libraries oder Namespaces:\n" +
+										("Details", "Das Modul verwendet unerlaubte Libraries oder Namespaces:\n" +
 										string.Join('\n', "- " + restrictedDependencies))
 									}
 								};

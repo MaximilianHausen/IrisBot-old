@@ -10,7 +10,7 @@ using System.Reflection;
 
 namespace IrisLoader.Permissions
 {
-	public static class PermissionManager
+	internal static class PermissionManager
 	{
 		private static MySqlConnection con = new MySqlConnection();
 		private static MySqlCommand cmd = new MySqlCommand();
@@ -47,7 +47,7 @@ namespace IrisLoader.Permissions
 			else
 				permissions.Add(permission);
 		}
-		public static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => RegisterPermissions(typeof(T), guild?.Id);
+		internal static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => RegisterPermissions(typeof(T), guild?.Id);
 		private static void RegisterPermissions(Type type, ulong? guildId)
 		{
 			List<IRequireIrisPermissionAttribute> attributes = new List<IRequireIrisPermissionAttribute>();
@@ -59,15 +59,15 @@ namespace IrisLoader.Permissions
 			type.GetNestedTypes().ForEach(t => RegisterPermissions(t, guildId));
 		}
 
-		public static bool HasPermission(DiscordGuild guild, DiscordRole role, string permission)
+		internal static bool HasPermission(DiscordGuild guild, DiscordRole role, string permission)
 		{
 			cmd.CommandText = $"SELECT * FROM role_perms WHERE guild_id = {guild.Id} AND role_id = {role.Id} AND permission = '{permission}'";
 			using MySqlDataReader reader = cmd.ExecuteReader();
 			return reader.HasRows;
 		}
-		public static bool HasPermission(DiscordMember member, string permission) => member.Roles.Any(r => HasPermission(member.Guild, r, permission));
+		internal static bool HasPermission(DiscordMember member, string permission) => member.Roles.Any(r => HasPermission(member.Guild, r, permission));
 
-		public static void SetPermission(DiscordGuild guild, DiscordRole role, string permission, bool value)
+		internal static void SetPermission(DiscordGuild guild, DiscordRole role, string permission, bool value)
 		{
 			if (value && !HasPermission(guild, role, permission))
 			{
@@ -80,7 +80,7 @@ namespace IrisLoader.Permissions
 				cmd.ExecuteNonQuery();
 			}
 		}
-		public static string[] GetPermissions(DiscordGuild guild, DiscordRole role)
+		internal static string[] GetPermissions(DiscordGuild guild, DiscordRole role)
 		{
 			List<string> perms = new List<string>();
 			cmd.CommandText = $"SELECT * FROM role_perms WHERE guild_id = {guild.Id} AND role_id = {role.Id}";
@@ -93,7 +93,7 @@ namespace IrisLoader.Permissions
 
 			return perms.ToArray();
 		}
-		public static void ResetPermissions(DiscordGuild guild, DiscordRole role = null)
+		internal static void ResetPermissions(DiscordGuild guild, DiscordRole role = null)
 		{
 			if (role == null)
 				cmd.CommandText = $"DELETE FROM role_perms WHERE guild_id = {guild.Id}";
