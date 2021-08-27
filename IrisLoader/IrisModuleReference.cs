@@ -5,14 +5,14 @@ using System.Runtime.Loader;
 
 namespace IrisLoader
 {
-	internal struct IrisModuleReference
+	internal struct IrisModuleReference<T> where T : BaseIrisModule
 	{
-		internal IrisModule module;
+		internal T module;
 		internal Assembly assembly;
 		internal AssemblyLoadContext context;
 		internal FileInfo file;
 
-		public IrisModuleReference(IrisModule module, Assembly assembly, AssemblyLoadContext context, FileInfo file)
+		internal IrisModuleReference(T module, Assembly assembly, AssemblyLoadContext context, FileInfo file)
 		{
 			this.module = module;
 			this.assembly = assembly;

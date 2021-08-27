@@ -5,6 +5,8 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
 using IrisLoader.Modules;
+using IrisLoader.Modules.Global;
+using IrisLoader.Modules.Guild;
 using IrisLoader.Permissions;
 using MoreLinq;
 using System;
@@ -32,8 +34,8 @@ namespace IrisLoader.Commands
 					ModernEmbedBuilder embedBuilder;
 					// name, active, true:global/false:guild
 					List<(string, bool, bool)> moduleList = new List<(string, bool, bool)>();
-					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), true)));
-					Loader.GetGuildModules(ctx.Guild.Id).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild.Id), false)));
+					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild), true)));
+					Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(), false)));
 
 					if (moduleList.Count > 0)
 					{
@@ -76,10 +78,11 @@ namespace IrisLoader.Commands
 				{
 					ModernEmbedBuilder embedBuilder;
 					bool prevState;
-					IrisModule module = Loader.GetModule(ctx.Guild.Id, moduleName, out _).module;
+					GlobalIrisModule globalModule = Loader.GetGlobalModules().Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
+					GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
 
 					// Exit on invalid module
-					if (module == null)
+					if (globalModule == null && guildModule == null)
 					{
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -95,8 +98,16 @@ namespace IrisLoader.Commands
 						return;
 					}
 
-					prevState = module.IsActive(ctx.Guild.Id);
-					module.SetActive(ctx.Guild.Id, !prevState);
+					if (globalModule != null)
+					{
+						prevState = globalModule.IsActive(ctx.Guild);
+						globalModule.SetActive(ctx.Guild, !prevState);
+					}
+					else
+					{
+						prevState = guildModule.IsActive();
+						guildModule.SetActive(!prevState);
+					}
 
 					embedBuilder = new ModernEmbedBuilder
 					{
@@ -202,7 +213,7 @@ namespace IrisLoader.Commands
 						}
 
 						// Check Attachment
-						bool isValid = await Loader.IsValidModule(cachePath);
+						bool isValid = await Loader.IsValidModule(cachePath, loadAsGlobal);
 
 						if (isValid)
 						{
@@ -303,9 +314,10 @@ namespace IrisLoader.Commands
 				public async Task DeleteCommand(InteractionContext ctx, [Option("name", "Name des zu löschenden Moduls")] string name)
 				{
 					bool usedByOwner = ctx.Client.CurrentApplication.Owners.Any(x => x.Id == ctx.User.Id);
-					IrisModuleReference moduleReference = Loader.GetModule(ctx.Guild?.Id, name, out bool isGlobal);
+					IrisModuleReference<GlobalIrisModule> globalModule = Loader.GetGlobalModules().Where(m => m.Key == name).FirstOrDefault().Value;
+					IrisModuleReference<GuildIrisModule> guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == name).FirstOrDefault().Value;
 
-					if (moduleReference.module == null)
+					if (globalModule.module == null && guildModule.module == null)
 					{
 						var embedBuilder = new ModernEmbedBuilder
 						{
@@ -320,12 +332,12 @@ namespace IrisLoader.Commands
 						return;
 					}
 
-					if (isGlobal)
+					if (globalModule.module != null)
 					{
 						if (usedByOwner)
 						{
 							await Loader.UnloadGlobalModuleAsync(name);
-							File.Delete(moduleReference.file.FullName);
+							File.Delete(globalModule.file.FullName);
 							var embedBuilder = new ModernEmbedBuilder
 							{
 								Title = "Modul gelöscht",
@@ -371,7 +383,7 @@ namespace IrisLoader.Commands
 						if (!PermissionManager.HasPermission(ctx.Member, "ManageModules") && !ctx.Member.Permissions.HasPermission(DSharpPlus.Permissions.Administrator))
 						{
 #warning Unload guild before delete
-							File.Delete(moduleReference.file.FullName);
+							File.Delete(guildModule.file.FullName);
 							var embedBuilder = new ModernEmbedBuilder
 							{
 								Title = "Modul gelöscht",
@@ -392,7 +404,7 @@ namespace IrisLoader.Commands
 								Color = 0xED4245,
 								Fields =
 								{
-									("Details", $"Um diesen Command zu verwenden ist die Iris-Berechtigung `ManageModules` benötigt")
+									("Details", "Um diesen Command zu verwenden ist die Iris-Berechtigung `ManageModules` benötigt")
 								}
 							};
 							await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));

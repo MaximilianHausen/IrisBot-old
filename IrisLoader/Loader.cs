@@ -1,8 +1,10 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using IrisLoader.Commands;
-using IrisLoader.Modules;
+using IrisLoader.Modules.Global;
+using IrisLoader.Modules.Guild;
 using IrisLoader.Permissions;
 using Microsoft.Extensions.Logging;
 using MoreLinq;
@@ -25,13 +27,15 @@ namespace IrisLoader
 			config = JsonSerializer.Deserialize<Config>(configString);
 		}
 
-		public static readonly Config config;
 		internal static DiscordShardedClient Client { get; private set; }
 		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
-		private static Dictionary<string, IrisModuleReference> globalModules = new();
-		private static Dictionary<ulong, Dictionary<string, IrisModuleReference>> guildModules = new();
+
+		public static readonly Config config;
+		private static Dictionary<string, IrisModuleReference<GlobalIrisModule>> globalModules = new();
+		private static Dictionary<ulong, Dictionary<string, IrisModuleReference<GuildIrisModule>>> guildModules = new();
 
 		internal static void Main() => MainAsync().GetAwaiter().GetResult();
+
 		internal static async Task MainAsync()
 		{
 			// Create client
@@ -69,33 +73,6 @@ namespace IrisLoader
 			return Task.CompletedTask;
 		}
 
-		internal static IrisModuleReference GetModule(ulong? guildId, string moduleName, out bool isGlobal)
-		{
-			if (guildId == null)
-			{
-				if (globalModules.ContainsKey(moduleName))
-				{
-					isGlobal = true;
-					return globalModules[moduleName];
-				}
-			}
-			else
-			{
-				if (globalModules.ContainsKey(moduleName))
-				{
-					isGlobal = true;
-					return globalModules[moduleName];
-				}
-				else if (guildModules.ContainsKey(guildId.Value) && guildModules[guildId.Value].ContainsKey(moduleName))
-				{
-					isGlobal = false;
-					return guildModules[guildId.Value][moduleName];
-				}
-			}
-
-			isGlobal = false;
-			return default;
-		}
 		internal static void CheckDependencies(string assemblyPath, out IEnumerable<string> restrictedDependencies)
 		{
 			// Load Assembly
@@ -137,7 +114,7 @@ namespace IrisLoader
 
 			restrictedDependencies = restrictedList;
 		}
-		internal static Task<bool> IsValidModule(string path)
+		internal static Task<bool> IsValidModule(string path, bool isGlobal)
 		{
 			// To absolute path
 			if (path.StartsWith('.'))
@@ -156,7 +133,14 @@ namespace IrisLoader
 			}
 
 			// Check and unload
-			isValid = moduleAssembly.ExportedTypes.Any(t => typeof(IrisModule).IsAssignableFrom(t));
+			if (isGlobal)
+			{
+				isValid = moduleAssembly.ExportedTypes.Any(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
+			}
+			else
+			{
+				isValid = moduleAssembly.ExportedTypes.Any(t => typeof(GuildIrisModule).IsAssignableFrom(t));
+			}
 			validationContext.Unload();
 
 			GC.Collect();
@@ -171,12 +155,10 @@ namespace IrisLoader
 			Directory.CreateDirectory("./Modules/Global");
 			return new DirectoryInfo("./Modules/Global");
 		}
-		internal static Dictionary<string, IrisModuleReference> GetGlobalModules() => globalModules;
+		internal static Dictionary<string, IrisModuleReference<GlobalIrisModule>> GetGlobalModules() => globalModules;
 		internal static async Task<bool> LoadGlobalModuleAsync(string name)
 		{
 			bool success = false;
-
-			DirectoryInfo moduleDirectory = GetGlobalModuleDirectory();
 
 			if (globalModules.ContainsKey(name))
 			{
@@ -185,10 +167,10 @@ namespace IrisLoader
 			}
 
 			// Find and load module in isolated context
-			foreach (FileInfo file in moduleDirectory.GetFiles().Where(f => f.Extension == ".dll"))
+			foreach (FileInfo file in GetGlobalModuleDirectory().GetFiles().Where(f => f.Extension == ".dll"))
 			{
 				if (AssemblyName.GetAssemblyName(file.FullName).Name != name) continue;
-				if (!await IsValidModule(file.FullName)) continue;
+				if (!await IsValidModule(file.FullName, true)) continue;
 
 				// Load Assembly
 				AssemblyLoadContext context = new AssemblyLoadContext(name, true);
@@ -199,12 +181,11 @@ namespace IrisLoader
 				}
 
 				// Load module
-				Type moduleType = assembly.ExportedTypes.Where(t => typeof(IrisModule).IsAssignableFrom(t)).First();
-				IrisModule module = (IrisModule)Activator.CreateInstance(moduleType);
-				globalModules.Add(name, new IrisModuleReference(module, assembly, context, file));
+				Type moduleType = assembly.ExportedTypes.Where(t => typeof(GlobalIrisModule).IsAssignableFrom(t)).First();
+				GlobalIrisModule module = (GlobalIrisModule)Activator.CreateInstance(moduleType);
+				globalModules.Add(name, new IrisModuleReference<GlobalIrisModule>(module, assembly, context, file));
 				await module.Load();
 				success = true;
-
 				break;
 			}
 
@@ -213,7 +194,7 @@ namespace IrisLoader
 		}
 		internal static async Task<(int, int)> LoadAllGlobalModulesAsync()
 		{
-			int moduleCount = 0;
+			int totalCount = 0;
 			int loadedCount = 0;
 
 			DirectoryInfo moduleDirectory = GetGlobalModuleDirectory();
@@ -221,18 +202,18 @@ namespace IrisLoader
 			// Load Modules
 			foreach (FileInfo file in moduleDirectory.GetFiles().Where(f => f.Extension == ".dll"))
 			{
-				moduleCount++;
+				totalCount++;
 				string moduleName = AssemblyName.GetAssemblyName(file.FullName).Name;
 				if (await LoadGlobalModuleAsync(moduleName)) loadedCount++;
 			}
 
-			Logger.Log(loadedCount == moduleCount ? LogLevel.Information : LogLevel.Warning, 0, "ModuleLoader", $"Loaded {loadedCount}/{moduleCount} global modules");
-			return (loadedCount, moduleCount);
+			Logger.Log(loadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 0, "ModuleLoader", $"Loaded {loadedCount}/{totalCount} global modules");
+			return (loadedCount, totalCount);
 		}
 
 		internal static async Task<bool> UnloadGlobalModuleAsync(string name)
 		{
-			bool isLoaded = globalModules.TryGetValue(name, out IrisModuleReference toUnload);
+			bool isLoaded = globalModules.TryGetValue(name, out IrisModuleReference<GlobalIrisModule> toUnload);
 			if (!isLoaded)
 			{
 				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not unloaded because it is not loaded");
@@ -240,7 +221,6 @@ namespace IrisLoader
 			}
 
 			await toUnload.module.Unload();
-			toUnload.context.Unload();
 			globalModules.Remove(name);
 			GC.Collect();
 			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
@@ -251,10 +231,10 @@ namespace IrisLoader
 			int moduleCount = 0;
 			int unloadedCount = 0;
 
-			foreach (IrisModuleReference item in globalModules.Values)
+			foreach (IrisModuleReference<GlobalIrisModule> module in globalModules.Values)
 			{
 				moduleCount++;
-				if (await UnloadGlobalModuleAsync(item.module.Name)) unloadedCount++;
+				if (await UnloadGlobalModuleAsync(module.module.Name)) unloadedCount++;
 			}
 
 			Logger.Log(unloadedCount == moduleCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{moduleCount} global modules");
@@ -262,7 +242,7 @@ namespace IrisLoader
 		}
 		#endregion
 		#region Guild Modules
-		internal static Dictionary<string, IrisModuleReference> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference>();
+		internal static Dictionary<string, IrisModuleReference<GuildIrisModule>> GetGuildModules(DiscordGuild guild) => guildModules.ContainsKey(guild.Id) ? guildModules[guild.Id] : new Dictionary<string, IrisModuleReference<GuildIrisModule>>();
 		#endregion
 	}
 }
