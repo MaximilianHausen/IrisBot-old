@@ -2,14 +2,14 @@
 using System.IO;
 using System.Text.Json;
 
-namespace IrisLoader.IO
+namespace IrisLoader.Modules
 {
-	public static class ModuleIO
+	internal static class ModuleIO
 	{
 		/// <param name="relPath"> Has to begin with one slash </param>
-		public static T ReadJson<T>(DiscordGuild guild, string moduleName, string relPath)
+		internal static T ReadJson<T>(DiscordGuild guild, BaseIrisModule module, string relPath)
 		{
-			string filePath = GetModuleFileDirectory(guild, moduleName).FullName + relPath;
+			string filePath = GetModuleFileDirectory(guild, module).FullName + relPath;
 			if (!relPath.EndsWith(".json") || !File.Exists(filePath))
 				return default;
 
@@ -19,17 +19,17 @@ namespace IrisLoader.IO
 			return result;
 		}
 		/// <param name="relPath"> Has to begin with one slash </param>
-		public static void WriteJson<T>(DiscordGuild guild, string moduleName, string relPath, T mapObject)
+		internal static void WriteJson<T>(DiscordGuild guild, BaseIrisModule module, string relPath, T mapObject)
 		{
-			string filePath = GetModuleFileDirectory(guild, moduleName).FullName + relPath;
+			string filePath = GetModuleFileDirectory(guild, module).FullName + relPath;
 			Directory.CreateDirectory(new FileInfo(filePath).DirectoryName);
 			string jsonString = JsonSerializer.Serialize(mapObject);
 			File.WriteAllText(filePath, jsonString);
 		}
 
-		internal static DirectoryInfo GetModuleFileDirectory(DiscordGuild guild, string moduleName)
+		internal static DirectoryInfo GetModuleFileDirectory(DiscordGuild guild, BaseIrisModule module)
 		{
-			DirectoryInfo dir = new DirectoryInfo(GetGuildFileDirectory(guild).FullName + '/' + moduleName);
+			DirectoryInfo dir = new DirectoryInfo(GetGuildFileDirectory(guild).FullName + '/' + module.Name);
 			Directory.CreateDirectory(dir.FullName);
 			return dir;
 		}

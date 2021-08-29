@@ -4,7 +4,6 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
-using IrisLoader.Modules;
 using IrisLoader.Modules.Global;
 using IrisLoader.Modules.Guild;
 using IrisLoader.Permissions;

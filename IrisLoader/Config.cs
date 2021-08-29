@@ -1,9 +1,9 @@
 ﻿namespace IrisLoader
 {
-	internal class Config
+	public class Config
 	{
-		internal string Token { get; set; }
-		internal string MySqlPassword { get; set; }
-		internal string[] AssemblyBlacklist { get; set; }
+		public string Token { get; set; }
+		public string MySqlPassword { get; set; }
+		public string[] AssemblyBlacklist { get; set; }
 	}
 }
