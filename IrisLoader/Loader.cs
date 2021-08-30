@@ -70,10 +70,16 @@ namespace IrisLoader
 			foreach (var guild in client.Guilds.Values) { guildList += guild.Name + '@' + guild.Id + ", "; }
 			guildList = guildList.Remove(guildList.Length - 2, 2);
 			Logger.Log(LogLevel.Information, 0, "Startup", guildList);
+
+			// Call Module-Ready
+			globalModules.ForEach(m => m.Value.module.Ready());
+			guildModules.ForEach(g => g.Value.ForEach(m => m.Value.module.Ready()));
+
 			return Task.CompletedTask;
 		}
 
-		internal static void CheckDependencies(string assemblyPath, out IEnumerable<string> restrictedDependencies)
+		/// <returns> Array of the names of the invalid Dependencies </returns>
+		internal static string[] CheckDependencies(string assemblyPath)
 		{
 			// Load Assembly
 			AssemblyLoadContext scanContext = new AssemblyLoadContext("ModuleScan", true);
@@ -84,35 +90,17 @@ namespace IrisLoader
 			}
 
 			// Scan and unload
-			CheckDependencies(moduleAssembly, out restrictedDependencies);
+			string[] restrictedDependencies = CheckDependencies(moduleAssembly);
 			scanContext.Unload();
 			GC.Collect();
+
+			return restrictedDependencies;
 		}
-		internal static void CheckDependencies(Assembly assembly, out IEnumerable<string> restrictedDependencies)
+		/// <returns> Array of the names of the invalid Dependencies </returns>
+		internal static string[] CheckDependencies(Assembly assembly)
 		{
-			List<string> restrictedList = new List<string>();
-			// Scan dependencies
 			IEnumerable<string> referencedAssemblies = assembly.GetReferencedAssemblies().Select(a => a.Name);
-			restrictedList.AddRange(referencedAssemblies.Where(a => config.AssemblyBlacklist.Contains(a)));
-
-			// Roughly scan namespaces
-			string[] blockedNamespaces = new string[] { "IrisLoader.Modules.Global", "IrisLoader.Modules.Guild" };
-			List<string> usedNamespaces = new List<string>();
-			foreach (Type type in assembly.DefinedTypes)
-			{
-				usedNamespaces.AddRange(type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(f => f.FieldType.Namespace).Distinct());
-				usedNamespaces.AddRange(type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(p => p.PropertyType.Namespace).Distinct());
-				usedNamespaces.AddRange(type.GetEvents(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(e => e.EventHandlerType.Namespace).Distinct());
-				usedNamespaces.AddRange(type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(m => m.ReturnType.Namespace).Distinct());
-				foreach (MethodInfo method in type.GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
-				{
-					usedNamespaces.AddRange(method.GetMethodBody().LocalVariables.Select(v => v.LocalType.Namespace));
-				}
-				usedNamespaces = usedNamespaces.Distinct().ToList();
-			}
-			restrictedList.AddRange(usedNamespaces.Where(n => blockedNamespaces.Contains(n)));
-
-			restrictedDependencies = restrictedList;
+			return referencedAssemblies.Where(a => config.AssemblyBlacklist.Contains(a)).ToArray();
 		}
 		internal static Task<bool> IsValidModule(string path, bool isGlobal)
 		{

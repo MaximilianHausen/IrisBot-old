@@ -16,6 +16,8 @@ namespace IrisLoader.Modules
 
 		/// <summary> Is called after the module was loaded. </summary>
 		public abstract Task Load();
+		/// <summary> Called after the GuildDownloadCompleted event is called </summary>
+		public abstract Task Ready();
 		/// <summary> Is called before the module is unloaded. </summary>
 		public abstract Task Unload();
 

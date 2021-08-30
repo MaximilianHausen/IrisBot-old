@@ -216,7 +216,7 @@ namespace IrisLoader.Commands
 
 						if (isValid)
 						{
-							Loader.CheckDependencies(cachePath, out IEnumerable<string> restrictedDependencies);
+							string[] restrictedDependencies = Loader.CheckDependencies(cachePath);
 							if (!restrictedDependencies.Any() || (restrictedDependencies.SingleOrDefault() == (loadAsGlobal ? "IrisLoader.Modules.Global" : "IrisLoader.Modules.Guild")))
 							{
 								// Move Module
