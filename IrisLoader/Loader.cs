@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using IrisLoader.Commands;
+using IrisLoader.Modules;
 using IrisLoader.Modules.Global;
 using IrisLoader.Modules.Guild;
 using IrisLoader.Permissions;
@@ -27,6 +28,7 @@ namespace IrisLoader
 			config = JsonSerializer.Deserialize<Config>(configString);
 		}
 
+		internal static bool IsConnected { get; private set; }
 		internal static DiscordShardedClient Client { get; private set; }
 		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
 
@@ -59,6 +61,7 @@ namespace IrisLoader
 			Client.GuildDownloadCompleted += Ready;
 
 			await Client.StartAsync();
+			IsConnected = true;
 			Console.ReadLine();
 			await Client.StopAsync();
 		}
@@ -136,6 +139,7 @@ namespace IrisLoader
 
 			return Task.FromResult(isValid);
 		}
+		internal static BaseIrisModule GetModuleByType(Type type) => globalModules.Select(m => m.Value.module).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m.module).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
 
 		#region Global Modules
 		private static DirectoryInfo GetGlobalModuleDirectory()
@@ -170,9 +174,10 @@ namespace IrisLoader
 
 				// Load module
 				Type moduleType = assembly.ExportedTypes.Where(t => typeof(GlobalIrisModule).IsAssignableFrom(t)).First();
-				GlobalIrisModule module = (GlobalIrisModule)Activator.CreateInstance(moduleType);
+				GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
 				globalModules.Add(name, new IrisModuleReference<GlobalIrisModule>(module, assembly, context, file));
 				await module.Load();
+				if (IsConnected) await module.Ready();
 				success = true;
 				break;
 			}
@@ -230,7 +235,8 @@ namespace IrisLoader
 		}
 		#endregion
 		#region Guild Modules
-		internal static Dictionary<string, IrisModuleReference<GuildIrisModule>> GetGuildModules(DiscordGuild guild) => guildModules.ContainsKey(guild.Id) ? guildModules[guild.Id] : new Dictionary<string, IrisModuleReference<GuildIrisModule>>();
+		internal static Dictionary<string, IrisModuleReference<GuildIrisModule>> GetGuildModules(DiscordGuild guild) => GetGuildModules(guild.Id);
+		internal static Dictionary<string, IrisModuleReference<GuildIrisModule>> GetGuildModules(ulong guildId) => guildModules.ContainsKey(guildId) ? guildModules[guildId] : new Dictionary<string, IrisModuleReference<GuildIrisModule>>();
 		#endregion
 	}
 }

@@ -4,13 +4,14 @@ using System.IO;
 
 namespace IrisLoader.Modules
 {
-	/// <summary> Untested and most likely broken </summary>
 	internal static class ModuleSettings
 	{
 		private static Dictionary<(ulong, string), object> settings = new Dictionary<(ulong, string), object>();
 
-		internal static T GetSettings<T>(DiscordGuild guild, BaseIrisModule module)
+		internal static T GetSettings<T>(DiscordGuild guild, BaseIrisModule module) where T : new()
 		{
+			if (!settings.ContainsKey((guild.Id, module.Name)))
+				UpdateFromFile<T>(guild, module);
 			return (T)settings[(guild.Id, module.Name)];
 		}
 		internal static void SetSettings<T>(DiscordGuild guild, BaseIrisModule module, T settingsObject)

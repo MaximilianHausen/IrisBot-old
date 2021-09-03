@@ -47,16 +47,14 @@ namespace IrisLoader.Permissions
 			else
 				permissions.Add(permission);
 		}
-		internal static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => RegisterPermissions(typeof(T), guild?.Id);
-		private static void RegisterPermissions(Type type, ulong? guildId)
+		internal static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => GetPermissionAttributes(typeof(T)).Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guild?.Id)));
+		private static List<IRequireIrisPermissionAttribute> GetPermissionAttributes(Type type)
 		{
 			List<IRequireIrisPermissionAttribute> attributes = new List<IRequireIrisPermissionAttribute>();
 			type.GetMethods().ForEach(m => m.GetCustomAttributes<SlashRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
 			type.GetMethods().ForEach(m => m.GetCustomAttributes<ContextMenuRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
-
-			attributes.Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guildId)));
-
-			type.GetNestedTypes().ForEach(t => RegisterPermissions(t, guildId));
+			type.GetNestedTypes().ForEach(t => attributes.AddRange(GetPermissionAttributes(t)));
+			return attributes;
 		}
 
 		internal static bool HasPermission(DiscordGuild guild, DiscordRole role, string permission)

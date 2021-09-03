@@ -94,12 +94,6 @@ namespace IrisLoader.Modules.Guild
 			client.WebhooksUpdated -= WebhooksUpdatedHandler;
 		}
 
-		public void RegisterCommands<T>() where T : ApplicationCommandModule
-		{
-			Loader.SlashExt.RegisterCommands<T>((Module as GuildIrisModule).Guild.Id);
-			PermissionManager.RegisterPermissions<T>((Module as GuildIrisModule).Guild);
-		}
-
 		// Yes, I did this manually...
 		private Task ChannelCreatedHandler(DiscordClient client, ChannelCreateEventArgs e) => e.Guild.Id == (Module as GuildIrisModule).Guild.Id ? ChannelCreated.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildClientExtension, ChannelCreateEventArgs> ChannelCreated;

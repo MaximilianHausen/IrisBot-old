@@ -68,5 +68,17 @@ namespace IrisLoader
 			module.AddExtension(ext);
 			return ext;
 		}
+		public static GlobalCommandExtension UseCommands(this GlobalIrisModule module)
+		{
+			GlobalCommandExtension ext = new GlobalCommandExtension();
+			module.AddExtension(ext);
+			return ext;
+		}
+		public static GuildCommandExtension UseCommands(this GuildIrisModule module)
+		{
+			GuildCommandExtension ext = new GuildCommandExtension();
+			module.AddExtension(ext);
+			return ext;
+		}
 	}
 }

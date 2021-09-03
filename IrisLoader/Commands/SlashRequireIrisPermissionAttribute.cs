@@ -3,10 +3,12 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
 using IrisLoader.Permissions;
+using System;
 using System.Threading.Tasks;
 
 namespace IrisLoader.Commands
 {
+	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 	public class SlashRequireIrisPermissionAttribute : SlashCheckBaseAttribute, IRequireIrisPermissionAttribute
 	{
 		public string Permission { get; private set; }

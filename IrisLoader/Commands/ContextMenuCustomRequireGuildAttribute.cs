@@ -8,19 +8,19 @@ using System.Threading.Tasks;
 namespace IrisLoader.Commands
 {
 	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-	public class SlashCustomRequireGuildAttribute : SlashCheckBaseAttribute
+	public class ContextMenuCustomRequireGuildAttribute : ContextMenuCheckBaseAttribute
 	{
 		private string message;
-		public SlashCustomRequireGuildAttribute(string errormessage)
+		public ContextMenuCustomRequireGuildAttribute(string errormessage)
 		{
 			message = errormessage;
 		}
-		public SlashCustomRequireGuildAttribute()
+		public ContextMenuCustomRequireGuildAttribute()
 		{
 			message = null;
 		}
 
-		public override async Task<bool> ExecuteChecksAsync(InteractionContext ctx)
+		public override async Task<bool> ExecuteChecksAsync(ContextMenuContext ctx)
 		{
 			if (ctx.Guild == null)
 			{
