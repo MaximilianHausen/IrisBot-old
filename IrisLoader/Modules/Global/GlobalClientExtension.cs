@@ -8,6 +8,9 @@ namespace IrisLoader.Modules.Global
 		internal GlobalClientExtension() { }
 
 		// No abstraction needed here, global modules can only be uploaded by the developers
-		public DiscordShardedClient GetClient() => Loader.Client;
+		public DiscordShardedClient Client
+		{
+			get { return Loader.Client; }
+		}
 	}
 }

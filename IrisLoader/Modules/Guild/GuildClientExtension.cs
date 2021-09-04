@@ -1,8 +1,6 @@
 ﻿using DSharpPlus;
 using DSharpPlus.EventArgs;
-using DSharpPlus.SlashCommands;
 using Emzi0767.Utilities;
-using IrisLoader.Permissions;
 using System.Threading.Tasks;
 
 namespace IrisLoader.Modules.Guild
