@@ -3,8 +3,6 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
 using IrisLoader.Modules;
-using IrisLoader.Modules.Global;
-using IrisLoader.Modules.Guild;
 using System;
 using System.Threading.Tasks;
 

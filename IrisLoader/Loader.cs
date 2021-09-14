@@ -4,8 +4,6 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using IrisLoader.Commands;
 using IrisLoader.Modules;
-using IrisLoader.Modules.Global;
-using IrisLoader.Modules.Guild;
 using IrisLoader.Permissions;
 using Microsoft.Extensions.Logging;
 using MoreLinq;
@@ -140,6 +138,7 @@ namespace IrisLoader
 			return Task.FromResult(isValid);
 		}
 		internal static BaseIrisModule GetModuleByType(Type type) => globalModules.Select(m => m.Value.module).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m.module).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
+		internal static BaseIrisModule GetModuleByName(string name) => globalModules.Select(m => m.Value.module).FirstOrDefault(m => m.Name == name) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m.module).FirstOrDefault(m => m.Name == name) as BaseIrisModule;
 
 		#region Global Modules
 		private static DirectoryInfo GetGlobalModuleDirectory()

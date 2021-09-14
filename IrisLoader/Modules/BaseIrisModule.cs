@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace IrisLoader.Modules
@@ -12,8 +11,6 @@ namespace IrisLoader.Modules
 			get { return GetType().Assembly.GetName().Name; }
 		}
 
-		private List<BaseIrisModuleExtension> extensions = new List<BaseIrisModuleExtension>();
-
 		/// <summary> Is called after the module was loaded. </summary>
 		public abstract Task Load();
 		/// <summary> Called after the GuildDownloadCompleted event is called </summary>
@@ -21,13 +18,10 @@ namespace IrisLoader.Modules
 		/// <summary> Is called before the module is unloaded. </summary>
 		public abstract Task Unload();
 
-		public void AddExtension(BaseIrisModuleExtension extension)
-		{
-			if (extensions.Any(e => e.GetType() == extension.GetType())) return;
-			extension.Module = this;
-			extension.Setup(this);
-			extensions.Add(extension);
-		}
-		public T GetExtension<T>() where T : BaseIrisModuleExtension => extensions.FirstOrDefault(e => e.GetType() == typeof(T)) as T;
+		#region Reminder
+		protected event Action<int, object[]> ReminderRecieved;
+		internal void InvokeEvent(int id, object[] values) => ReminderRecieved.Invoke(id, values);
+		public void AddReminder(TimeSpan delay, int id, object[] values) => Reminder.AddReminder(delay, this, id, values);
+		#endregion
 	}
 }
