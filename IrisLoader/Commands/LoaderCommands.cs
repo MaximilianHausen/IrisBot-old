@@ -336,6 +336,7 @@ namespace IrisLoader.Commands
 						{
 							await Loader.UnloadGlobalModuleAsync(name);
 							File.Delete(globalModule.file.FullName);
+							Loader.Client.GetGuilds().ForEach(g => Directory.Delete(ModuleIO.GetModuleFileDirectory(g, name).FullName));
 							var embedBuilder = new ModernEmbedBuilder
 							{
 								Title = "Modul gelöscht",
@@ -381,6 +382,7 @@ namespace IrisLoader.Commands
 						if (!PermissionManager.HasPermission(ctx.Member, "ManageModules") && !ctx.Member.Permissions.HasPermission(DSharpPlus.Permissions.Administrator))
 						{
 #warning Unload guild before delete
+							Directory.Delete(name);
 							File.Delete(guildModule.file.FullName);
 							var embedBuilder = new ModernEmbedBuilder
 							{
