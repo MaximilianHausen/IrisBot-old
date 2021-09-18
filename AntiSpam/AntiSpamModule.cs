@@ -2,7 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using IrisLoader;
-using IrisLoader.Modules.Global;
+using IrisLoader.Modules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,96 +16,114 @@ namespace AntiSpam
 		public static AntiSpamModule Instance { get; private set; }
 		public AntiSpamModule() => Instance = this;
 
-		public override bool IsActive(DiscordGuild guild)
-		{
-			return GetExtension<GlobalSettingsExtension>().GetSettings<AntiSpamSettingsModel>(guild).Active;
-		}
-
 		public override Task Load()
 		{
-			this.UseClient().Client.MessageCreated += MessageCreated;
-			this.UseCommands().RegisterCommands<AntiSpamCommands>();
-			this.UseSettings();
+			Client.MessageCreated += MessageCreated;
+			Client.GuildRoleDeleted += RoleDeleted;
+			Client.GuildRoleUpdated += GuildRoleUpdated;
+			ReminderRecieved += ProcessReminder;
+			RegisterCommands<AntiSpamCommands>();
+			return Task.CompletedTask;
+		}
+
+		public override Task Unload()
+		{
+			Client.MessageCreated -= MessageCreated;
+			Client.GuildRoleDeleted -= RoleDeleted;
+			ReminderRecieved -= ProcessReminder;
 			return Task.CompletedTask;
 		}
 		public override Task Ready()
 		{
-			GetExtension<GlobalSettingsExtension>().UpdateFromFile<AntiSpamSettingsModel>();
+			UpdateFromFile<AntiSpamSettingsModel>();
 			return Task.CompletedTask;
 		}
-		public override Task Unload()
-		{
-			return Task.CompletedTask;
-		}
-
+		public override bool IsActive(DiscordGuild guild) => GetSettings<AntiSpamSettingsModel>(guild).Active;
 		public override void SetActive(DiscordGuild guild, bool state)
 		{
-			var settingsExt = GetExtension<GlobalSettingsExtension>();
-			var settings = settingsExt.GetSettings<AntiSpamSettingsModel>(guild);
+			var settings = GetSettings<AntiSpamSettingsModel>(guild);
 			settings.Active = state;
-			settingsExt.SetSettings(guild, settings);
+			SetSettings(guild, settings);
 		}
 
 		public async Task MessageCreated(DiscordClient client, MessageCreateEventArgs args)
 		{
-			if (args.Guild == null || !GetExtension<GlobalSettingsExtension>().GetSettings<AntiSpamSettingsModel>(args.Guild).Active) return;
+			if (args.Guild == null || !GetSettings<AntiSpamSettingsModel>(args.Guild).Active) return;
 			messageCache.Add(args.Message);
 			messageCache.RemoveAll(m => (DateTime.Now - m.CreationTimestamp) > TimeSpan.FromMinutes(5));
-			List<DiscordMessage> countedMessages = messageCache.Where(m => (DateTime.Now - m.CreationTimestamp) > TimeSpan.FromSeconds(10)).ToList();
+			var countedMessages = messageCache.Where(m => (DateTime.Now - m.CreationTimestamp) < TimeSpan.FromSeconds(10)).Where(m => m.Author == args.Author).ToList();
 
 			if (countedMessages.Count(m => m.Author == args.Author) > 5 || countedMessages.Select(m => m.Channel).Distinct().Count() > 2)
 			{
-				_ = MuteUser(args.Author, true);
+				// Mute user
+				List<Task<DiscordMember>> members = Client.GetGuilds().Select(g => g.GetMemberAsync(args.Author.Id)).ToList();
+				foreach (var memberTask in members)
+				{
+					var member = await memberTask;
+					var settings = GetSettings<AntiSpamSettingsModel>(member.Guild);
+					if (!settings.Active || !settings.AutoMute || settings.MuteRoleId == 0) continue;
+
+					_ = MuteMemberAsync(member);
+					AddReminder(TimeSpan.FromMinutes(settings.MuteDuration), 0, new string[] { member.Guild.Id.ToString(), member.Id.ToString() });
+				}
 
 				// Delete messages
-				foreach (var channel in countedMessages.Where(m => m.Author == args.Author).Select(m => m.Channel).Distinct())
+				var channels = countedMessages.Select(m => m.Channel).Distinct();
+				foreach (var channel in channels)
 				{
-					if (GetExtension<GlobalSettingsExtension>().GetSettings<AntiSpamSettingsModel>(channel.Guild).AutoDelete)
-					{
-						_ = channel.DeleteMessagesAsync(countedMessages.Where(m => m.Author == args.Author && m.Channel == channel));
-						countedMessages.RemoveAll(m => m.Author == args.Author && m.Channel == channel);
-					}
+					var settings = GetSettings<AntiSpamSettingsModel>(channel.Guild);
+					if (!settings.Active || !settings.AutoDelete) continue;
+
+					_ = channel.DeleteMessagesAsync(countedMessages.Where(m => m.Channel == channel));
+					messageCache.RemoveAll(m => m.Author == args.Author && m.Channel == channel && (DateTime.Now - m.CreationTimestamp) < TimeSpan.FromSeconds(10));
 				}
-				_ = UnmuteWithDelay(args.Author, TimeSpan.FromMinutes(5));
+			}
+		}
+		private async Task GuildRoleUpdated(DiscordClient client, GuildRoleUpdateEventArgs args)
+		{
+			var settings = GetSettings<AntiSpamSettingsModel>(args.Guild);
+			if (settings.MuteRoleId == 0) return;
+
+			if (!(await args.Guild.GetMemberAsync(client.CurrentUser.Id)).Roles.Any(r => r.Position > args.RoleAfter.Position))
+			{
+				settings.MuteRoleId = 0;
+				SetSettings(args.Guild, settings);
+			}
+		}
+		public Task RoleDeleted(DiscordClient client, GuildRoleDeleteEventArgs args)
+		{
+			var settings = GetSettings<AntiSpamSettingsModel>(args.Guild);
+			if (settings.MuteRoleId == 0) return Task.CompletedTask;
+
+			settings.MuteRoleId = 0;
+			SetSettings(args.Guild, settings);
+
+			return Task.CompletedTask;
+		}
+		public void ProcessReminder(int id, string[] args)
+		{
+			switch (id)
+			{
+				case 0:
+					Client.GetGuilds().ForEach(async g => _ = UnmuteMemberAsync(await (await Client.GetShard(ulong.Parse(args[0])).GetGuildAsync(ulong.Parse(args[0]))).GetMemberAsync(ulong.Parse(args[1]))));
+					break;
 			}
 		}
 
-		public async Task MuteUser(DiscordUser user, bool respectAutoMuteSetting = false)
+
+		public async Task MuteMemberAsync(DiscordMember member, bool respectAutoMuteSetting = false)
 		{
-			Dictionary<Task<DiscordMember>, DiscordRole> memberList = new();
-
-			foreach (DiscordGuild guild in GetExtension<GlobalClientExtension>().Client.GetGuilds())
-			{
-				AntiSpamSettingsModel settings = GetExtension<GlobalSettingsExtension>().GetSettings<AntiSpamSettingsModel>(guild);
-				if (settings.Active && (settings.AutoMute || !respectAutoMuteSetting) && settings.MuteRoleId != 0)
-					memberList.Add(guild.GetMemberAsync(user.Id), guild.GetRole(settings.MuteRoleId));
-			}
-
-			foreach (var pair in memberList)
-			{
-				if (pair.Value != null)
-					_ = (await pair.Key).GrantRoleAsync(pair.Value, "Spamming");
-			}
+			var settings = GetSettings<AntiSpamSettingsModel>(member.Guild);
+			if (!(settings.AutoMute || !respectAutoMuteSetting) || settings.MuteRoleId == 0) return;
+			
+			await member.GrantRoleAsync(member.Guild.GetRole(settings.MuteRoleId));
 		}
-		public async Task UnmuteUser(DiscordUser user)
+		public async Task UnmuteMemberAsync(DiscordMember member)
 		{
-			Dictionary<Task<DiscordMember>, DiscordRole> memberList = new();
+			var settings = GetSettings<AntiSpamSettingsModel>(member.Guild);
+			if (settings.MuteRoleId == 0) return;
 
-			foreach (DiscordGuild guild in GetExtension<GlobalClientExtension>().Client.GetGuilds())
-			{
-				memberList.Add(guild.GetMemberAsync(user.Id), guild.GetRole(GetExtension<GlobalSettingsExtension>().GetSettings<AntiSpamSettingsModel>(guild).MuteRoleId));
-			}
-
-			foreach (var pair in memberList)
-			{
-				if (pair.Value != null)
-					_ = (await pair.Key).RevokeRoleAsync(pair.Value);
-			}
-		}
-		public async Task UnmuteWithDelay(DiscordUser user, TimeSpan delay)
-		{
-			await Task.Delay(delay);
-			_ = UnmuteUser(user);
+			await member.RevokeRoleAsync(member.Guild.GetRole(settings.MuteRoleId));
 		}
 	}
 }

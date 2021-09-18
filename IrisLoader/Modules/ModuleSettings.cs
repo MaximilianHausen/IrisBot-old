@@ -22,7 +22,7 @@ namespace IrisLoader.Modules
 
 		internal static void UpdateFromFile<T>(DiscordGuild guild, BaseIrisModule module) where T : new()
 		{
-			if (!File.Exists(ModuleIO.GetModuleFileDirectory(guild, module).FullName + "/settings.json"))
+			if (!File.Exists(ModuleIO.GetModuleFileDirectory(guild, module.Name).FullName + "/settings.json"))
 			{
 				ModuleIO.WriteJson(guild, module, "/settings.json", new T());
 			}

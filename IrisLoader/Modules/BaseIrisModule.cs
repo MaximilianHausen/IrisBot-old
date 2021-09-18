@@ -19,9 +19,9 @@ namespace IrisLoader.Modules
 		public abstract Task Unload();
 
 		#region Reminder
-		protected event Action<int, object[]> ReminderRecieved;
-		internal void InvokeEvent(int id, object[] values) => ReminderRecieved.Invoke(id, values);
-		public void AddReminder(TimeSpan delay, int id, object[] values) => Reminder.AddReminder(delay, this, id, values);
+		protected event Action<int, string[]> ReminderRecieved;
+		internal void InvokeEvent(int id, string[] values) => ReminderRecieved.Invoke(id, values);
+		public void AddReminder(TimeSpan delay, int id, string[] values) => Reminder.AddReminder(delay, this, id, values);
 		#endregion
 	}
 }

@@ -10,27 +10,46 @@ namespace IrisLoader
 {
 	public static class Reminder
 	{
-		private struct ReminderModel
+		private struct ReminderModel : IEquatable<ReminderModel>
 		{
 			public DateTime Time { get; set; }
 			public string ModuleName { get; set; }
 			public int Id { get; set; }
-			public object[] Values { get; set; }
+			public string[] Values { get; set; }
+
+			public bool Equals(ReminderModel other)
+			{
+				return !(!Time.Equals(other.Time) || !ModuleName.Equals(other.ModuleName) || !Id.Equals(other.Id) || !Values.SequenceEqual(other.Values));
+			}
+
+			public static bool operator ==(ReminderModel reminder1, ReminderModel reminder2)
+			{
+				return !(!reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Id.Equals(reminder2.Id) || !reminder1.Values.SequenceEqual(reminder2.Values));
+			}
+			public static bool operator !=(ReminderModel reminder1, ReminderModel reminder2)
+			{
+				return !reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Id.Equals(reminder2.Id) || !reminder1.Values.SequenceEqual(reminder2.Values);
+			}
 		}
 
-		private static readonly string filePath = Directory.GetCurrentDirectory() + "/tasks.json";
+		private static readonly string filePath = Directory.GetCurrentDirectory() + "/ModuleFiles/reminders.json";
 
-		internal static void LoadRemainingTasks()
+		static Reminder()
 		{
 			if (!File.Exists(filePath))
 				File.WriteAllText(filePath, JsonSerializer.Serialize(new List<ReminderModel>()));
 		}
 
-		/// <summary> Sends a reminder to the module with a given delay and continues even after restarting the application. This should be used for something like "remove this role in 1 Week" </summary>
-		internal static void AddReminder(TimeSpan delay, BaseIrisModule module, int id, object[] values)
+		internal static void LoadRemainingTasks()
 		{
-			if (values.Any(o => !o.GetType().IsValueType)) return;
+			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
 
+			reminders.ForEach(r => _ = RunReminder(r));
+		}
+
+		/// <summary> Sends a reminder to the module with a given delay and continues even after restarting the application. This should be used for something like "remove this role in 1 Week" </summary>
+		internal static void AddReminder(TimeSpan delay, BaseIrisModule module, int id, string[] values)
+		{
 			DateTime time = DateTime.Now + delay;
 
 			// Add to file
@@ -39,17 +58,18 @@ namespace IrisLoader
 			reminders.Add(reminder);
 			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
 
-			_ = StartReminder(reminder);
+			_ = RunReminder(reminder);
 		}
 
-		private static async Task StartReminder(ReminderModel reminder)
+		private static async Task RunReminder(ReminderModel reminder)
 		{
-			await Task.Delay(reminder.Time - DateTime.Now);
+			if (DateTime.Now < reminder.Time)
+				await Task.Delay(reminder.Time - DateTime.Now);
 
-			var taskList = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
-			taskList.RemoveAll(t => t.Equals(reminder));
-			File.WriteAllText(filePath, JsonSerializer.Serialize(taskList));
-			
+			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
+			reminders.RemoveAll(r => r == reminder);
+			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
+
 			Loader.GetModuleByName(reminder.ModuleName).InvokeEvent(reminder.Id, reminder.Values);
 		}
 	}

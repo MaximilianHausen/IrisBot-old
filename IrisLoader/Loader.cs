@@ -52,6 +52,8 @@ namespace IrisLoader
 			SlashExt = await Client.UseSlashCommandsAsync();
 			SlashExt.RegisterCommands<LoaderCommands>();
 
+			Directory.CreateDirectory(Directory.GetCurrentDirectory() + "/ModuleFiles");
+
 			PermissionManager.RegisterPermissions<LoaderCommands>(null);
 			await LoadAllGlobalModulesAsync();
 
@@ -75,6 +77,8 @@ namespace IrisLoader
 			// Call Module-Ready
 			globalModules.ForEach(m => m.Value.module.Ready());
 			guildModules.ForEach(g => g.Value.ForEach(m => m.Value.module.Ready()));
+
+			Reminder.LoadRemainingTasks();
 
 			return Task.CompletedTask;
 		}
