@@ -336,7 +336,7 @@ namespace IrisLoader.Commands
 						{
 							await Loader.UnloadGlobalModuleAsync(name);
 							File.Delete(globalModule.file.FullName);
-							Loader.Client.GetGuilds().ForEach(g => Directory.Delete(ModuleIO.GetModuleFileDirectory(g, name).FullName));
+							Loader.Client.GetGuilds().ForEach(g => Directory.Delete(ModuleIO.GetModuleFileDirectory(g.Value, name).FullName));
 							var embedBuilder = new ModernEmbedBuilder
 							{
 								Title = "Modul gelöscht",

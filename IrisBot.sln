@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IrisLoader", "IrisLoader\Ir
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiSpam", "AntiSpam\AntiSpam.csproj", "{049DFF83-DAB5-4A62-B114-99DE440A005C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AntiPing", "AntiPing\AntiPing.csproj", "{F719E21E-2F2B-45BD-B2AF-661A52179775}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{049DFF83-DAB5-4A62-B114-99DE440A005C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{049DFF83-DAB5-4A62-B114-99DE440A005C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{049DFF83-DAB5-4A62-B114-99DE440A005C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F719E21E-2F2B-45BD-B2AF-661A52179775}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F719E21E-2F2B-45BD-B2AF-661A52179775}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F719E21E-2F2B-45BD-B2AF-661A52179775}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F719E21E-2F2B-45BD-B2AF-661A52179775}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

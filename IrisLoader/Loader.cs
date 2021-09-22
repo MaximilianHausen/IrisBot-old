@@ -59,6 +59,7 @@ namespace IrisLoader
 
 			// Register startup events
 			Client.GuildDownloadCompleted += Ready;
+			Client.GuildDeleted += GuildDeleted;
 
 			await Client.StartAsync();
 			IsConnected = true;
@@ -83,6 +84,20 @@ namespace IrisLoader
 			return Task.CompletedTask;
 		}
 
+		public static Task GuildDeleted(DiscordClient client, DSharpPlus.EventArgs.GuildDeleteEventArgs args)
+		{
+			Reminder.AddReminder(TimeSpan.FromDays(7), "Loader", new string[] { args.Guild.Id.ToString() });
+			return Task.CompletedTask;
+		}
+		internal static Task ReminderRecieved(string[] values)
+		{
+			var parsedId = ulong.Parse(values[0]);
+			var guilds = Client.GetGuilds();
+			if (!guilds.ContainsKey(parsedId))
+				Directory.Delete(ModuleIO.GetGuildFileDirectory(guilds[parsedId]).FullName, true);
+			return Task.CompletedTask;
+		}
+
 		/// <returns> Array of the names of the invalid Dependencies </returns>
 		internal static string[] CheckDependencies(string assemblyPath)
 		{
@@ -97,7 +112,6 @@ namespace IrisLoader
 			// Scan and unload
 			string[] restrictedDependencies = CheckDependencies(moduleAssembly);
 			scanContext.Unload();
-			GC.Collect();
 
 			return restrictedDependencies;
 		}
@@ -114,6 +128,8 @@ namespace IrisLoader
 				path = Path.GetFullPath(path);
 			// Is dll
 			if (!path.EndsWith(".dll") || !File.Exists(path)) return Task.FromResult(false);
+			// Name is okay
+			if (AssemblyName.GetAssemblyName(path).Name == "Loader") return Task.FromResult(false);
 
 			bool isValid = false;
 
@@ -136,7 +152,6 @@ namespace IrisLoader
 			}
 			validationContext.Unload();
 
-			GC.Collect();
 			Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" " + (isValid ? "contains " : "does not contain ") + "a valid module");
 
 			return Task.FromResult(isValid);
@@ -218,7 +233,6 @@ namespace IrisLoader
 
 			await toUnload.module.Unload();
 			globalModules.Remove(name);
-			GC.Collect();
 			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
 			return true;
 		}

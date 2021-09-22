@@ -1,11 +1,14 @@
 ﻿using DSharpPlus.Entities;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace IrisLoader.Modules
 {
 	internal static class ModuleIO
 	{
+		private readonly static JsonSerializerOptions ignoreNullOptions = new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+
 		/// <param name="relPath"> Has to begin with one slash </param>
 		internal static T ReadJson<T>(DiscordGuild guild, BaseIrisModule module, string relPath)
 		{
@@ -23,7 +26,7 @@ namespace IrisLoader.Modules
 		{
 			string filePath = GetModuleFileDirectory(guild, module.Name).FullName + relPath;
 			Directory.CreateDirectory(new FileInfo(filePath).DirectoryName);
-			string jsonString = JsonSerializer.Serialize(mapObject);
+			string jsonString = JsonSerializer.Serialize(mapObject, ignoreNullOptions);
 			File.WriteAllText(filePath, jsonString);
 		}
 

@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using IrisLoader.Permissions;
+using MoreLinq;
 using System.Linq;
 
 namespace IrisLoader.Modules
@@ -38,7 +39,7 @@ namespace IrisLoader.Modules
 		public T GetSettings<T>(DiscordGuild guild) where T : new() => ModuleSettings.GetSettings<T>(guild, this);
 		public void SetSettings<T>(DiscordGuild guild, T settingsObject) => ModuleSettings.SetSettings(guild, this, settingsObject);
 
-		public void UpdateFromFile<T>() where T : new() => Loader.Client.GetGuilds().ForEach(g => ModuleSettings.UpdateFromFile<T>(g, this));
+		public void UpdateFromFile<T>() where T : new() => Loader.Client.GetGuilds().ForEach(g => ModuleSettings.UpdateFromFile<T>(g.Value, this));
 		#endregion
 
 		#region Permissions

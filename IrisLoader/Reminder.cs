@@ -1,5 +1,4 @@
-﻿using IrisLoader.Modules;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,21 +13,20 @@ namespace IrisLoader
 		{
 			public DateTime Time { get; set; }
 			public string ModuleName { get; set; }
-			public int Id { get; set; }
 			public string[] Values { get; set; }
 
 			public bool Equals(ReminderModel other)
 			{
-				return !(!Time.Equals(other.Time) || !ModuleName.Equals(other.ModuleName) || !Id.Equals(other.Id) || !Values.SequenceEqual(other.Values));
+				return !(!Time.Equals(other.Time) || !ModuleName.Equals(other.ModuleName) || !Values.SequenceEqual(other.Values));
 			}
 
 			public static bool operator ==(ReminderModel reminder1, ReminderModel reminder2)
 			{
-				return !(!reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Id.Equals(reminder2.Id) || !reminder1.Values.SequenceEqual(reminder2.Values));
+				return !(!reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Values.SequenceEqual(reminder2.Values));
 			}
 			public static bool operator !=(ReminderModel reminder1, ReminderModel reminder2)
 			{
-				return !reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Id.Equals(reminder2.Id) || !reminder1.Values.SequenceEqual(reminder2.Values);
+				return !reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Values.SequenceEqual(reminder2.Values);
 			}
 		}
 
@@ -48,12 +46,12 @@ namespace IrisLoader
 		}
 
 		/// <summary> Sends a reminder to the module with a given delay and continues even after restarting the application. This should be used for something like "remove this role in 1 Week" </summary>
-		internal static void AddReminder(TimeSpan delay, BaseIrisModule module, int id, string[] values)
+		internal static void AddReminder(TimeSpan delay, string moduleName, string[] values)
 		{
 			DateTime time = DateTime.Now + delay;
 
 			// Add to file
-			var reminder = new ReminderModel() { Time = time, ModuleName = module.Name, Id = id, Values = values };
+			var reminder = new ReminderModel() { Time = time, ModuleName = moduleName, Values = values };
 			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
 			reminders.Add(reminder);
 			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
@@ -70,7 +68,10 @@ namespace IrisLoader
 			reminders.RemoveAll(r => r == reminder);
 			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
 
-			Loader.GetModuleByName(reminder.ModuleName).InvokeEvent(reminder.Id, reminder.Values);
+			if (reminder.ModuleName == "Loader")
+				_ = Loader.ReminderRecieved(reminder.Values);
+			else
+				_ = Loader.GetModuleByName(reminder.ModuleName).InvokeEvent(reminder.Values);
 		}
 	}
 }

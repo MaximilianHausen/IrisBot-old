@@ -3,7 +3,6 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
 using IrisLoader.Commands;
-using MoreLinq;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,14 +12,89 @@ namespace AntiSpam
 	public class AntiSpamCommands : ApplicationCommandModule
 	{
 		[SlashCustomRequireGuild]
-		[SlashRequireActiveModule(typeof(AntiSpamModule))]
 		[SlashCommandGroup("antispam", "Commands für das Antispam-Modul")]
 		public class AntiSpamCommandGroup
 		{
 			[SlashCommandGroup("settings", "Commands, um die Einstellungen zu verändern")]
 			public class SettingsCommandGroup
 			{
+				[SlashCommand("currentsettings", "Gibt eine Übersicht über alle Einstellungen von AntiSpam")]
+				public async Task SettingsCommand(InteractionContext ctx)
+				{
+					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+
+					var embedBuilder = new ModernEmbedBuilder
+					{
+						Title = "Einstellung gelesen",
+						Color = 0x57F287,
+						Fields =
+						{
+							("Details", $"`Auto-Mute`: {settings.AutoMute}\n" +
+							$"`Mute-Time`: {settings.MuteDuration} Minuten\n" +
+							$"`Mute-Role`: {(settings.MuteRoleId.HasValue ? ctx.Guild.GetRole(settings.MuteRoleId.Value).Mention : "null")}\n\n" +
+							$"`Auto-Delete`: {settings.AutoDelete}")
+						}
+					};
+
+					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
+				}
 				[SlashRequireIrisPermission("ManageAntiSpam")]
+				[SlashRequireActiveModule(typeof(AntiSpamModule))]
+				[SlashCommand("automute", "Schaltet das automatische Stummschalten von Spammern an oder aus")]
+				public async Task AutoMuteCommand(InteractionContext ctx, [Option("value", "Ob Spammer automatisch gemutet werden sollen")] bool? value = null)
+				{
+					ModernEmbedBuilder embedBuilder;
+					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					bool isEphemeral = true;
+
+					if (value.HasValue)
+					{
+						if (settings.MuteRoleId.HasValue)
+						{
+							isEphemeral = false;
+							settings.AutoMute = value.Value;
+							AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
+
+							embedBuilder = new ModernEmbedBuilder
+							{
+								Title = "Einstellung geändert",
+								Color = 0x57F287,
+								Fields =
+								{
+									("Details", $"`Auto-Mute` auf {value} gesetzt")
+								}
+							};
+						}
+						else
+						{
+							embedBuilder = new ModernEmbedBuilder
+							{
+								Title = "Einstellung geändert",
+								Color = 0x57F287,
+								Fields =
+								{
+									("Details", $"Um `Auto-Mute` zu aktivieren, muss eine `Mute-Role` festgelegt werden")
+								}
+							};
+						}
+					}
+					else
+					{
+						embedBuilder = new ModernEmbedBuilder
+						{
+							Title = "Einstellung gelesen",
+							Color = 0x57F287,
+							Fields =
+							{
+								("Details", "`Auto-Mute` ist momentan " + (settings.AutoMute ? "aktiviert" : "deaktiviert"))
+							}
+						};
+					}
+
+					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = isEphemeral }.AddEmbed(embedBuilder.Build()));
+				}
+				[SlashRequireIrisPermission("ManageAntiSpam")]
+				[SlashRequireActiveModule(typeof(AntiSpamModule))]
 				[SlashCommand("muterole", "Setzt die zum Stummschalten verwendete Rolle")]
 				public async Task MuteRoleCommand(InteractionContext ctx, [Option("role", "Die Rolle, die zum muten verwendet werden soll")] DiscordRole role = null)
 				{
@@ -41,7 +115,7 @@ namespace AntiSpam
 								Color = 0x57F287,
 								Fields =
 								{
-									("Details", $"`MuteRole` auf {role.Mention} gesetzt")
+									("Details", $"`Mute-Role` auf {role.Mention} gesetzt")
 								}
 							};
 						}
@@ -60,7 +134,7 @@ namespace AntiSpam
 					}
 					else
 					{
-						if (ctx.Guild.Roles.ContainsKey(settings.MuteRoleId))
+						if (settings.MuteRoleId.HasValue)
 						{
 							embedBuilder = new ModernEmbedBuilder
 							{
@@ -68,7 +142,7 @@ namespace AntiSpam
 								Color = 0x57F287,
 								Fields =
 								{
-									("Details", "Die momentane Mute-Rolle ist: " + ctx.Guild.GetRole(settings.MuteRoleId).Mention)
+									("Details", "Die momentane Mute-Rolle ist: " + ctx.Guild.GetRole(settings.MuteRoleId.Value).Mention)
 								}
 							};
 						}
@@ -89,6 +163,7 @@ namespace AntiSpam
 					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = !canGrantRole }.AddEmbed(embedBuilder.Build()));
 				}
 				[SlashRequireIrisPermission("ManageAntiSpam")]
+				[SlashRequireActiveModule(typeof(AntiSpamModule))]
 				[SlashCommand("muteduration", "Die Zeit, für die Leute gemutet werden sollen")]
 				public async Task MuteDurationCommand(InteractionContext ctx, [Option("weeks", "Wochen, für die die Mute-Rolle vergeben wird")] long weeks = 0, [Option("days", "Tage, für die die Mute-Rolle vergeben wird")] long days = 0, [Option("hours", "Stunden, für die die Mute-Rolle vergeben wird")] long hours = 0, [Option("minutes", "Minuten, für die die Mute-Rolle vergeben wird")] long minutes = 0)
 				{
@@ -108,7 +183,7 @@ namespace AntiSpam
 							Color = 0x57F287,
 							Fields =
 							{
-								("Details", $"`MuteDuration` auf `{TimeSpan.FromMinutes(timeInMinutes)}` gesetzt")
+								("Details", $"`Mute-Duration` auf `{TimeSpan.FromMinutes(timeInMinutes)}` gesetzt")
 							}
 						};
 					}
@@ -120,7 +195,7 @@ namespace AntiSpam
 							Color = 0xED4245,
 							Fields =
 							{
-								("Details", $"`MuteDuration` muss positiv sein")
+								("Details", $"`Mute-Duration` muss positiv sein")
 							}
 						};
 					}
@@ -132,7 +207,7 @@ namespace AntiSpam
 							Color = 0x57F287,
 							Fields =
 							{
-								("Details", "`MuteDuration` ist momentan " + TimeSpan.FromMinutes(settings.MuteDuration))
+								("Details", "`Mute-Duration` ist momentan " + TimeSpan.FromMinutes(settings.MuteDuration))
 							}
 						};
 					}
@@ -140,6 +215,7 @@ namespace AntiSpam
 					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = weeks + days + hours + minutes == 0 }.AddEmbed(embedBuilder.Build()));
 				}
 				[SlashRequireIrisPermission("ManageAntiSpam")]
+				[SlashRequireActiveModule(typeof(AntiSpamModule))]
 				[SlashCommand("autodelete", "Schaltet das automatische Löschen von Spam an oder aus")]
 				public async Task AutoDeleteCommand(InteractionContext ctx, [Option("value", "Ob Spam automatisch gelöscht werden sollen")] bool? value = null)
 				{
@@ -157,7 +233,7 @@ namespace AntiSpam
 							Color = 0x57F287,
 							Fields =
 							{
-								("Details", $"`AutoDelete` auf `{value}` gesetzt")
+								("Details", $"`Auto-Delete` auf `{value}` gesetzt")
 							}
 						};
 					}
@@ -176,43 +252,6 @@ namespace AntiSpam
 
 					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = !value.HasValue }.AddEmbed(embedBuilder.Build()));
 				}
-				[SlashRequireIrisPermission("ManageAntiSpam")]
-				[SlashCommand("automute", "Schaltet das automatische Stummschalten von Spammern an oder aus")]
-				public async Task AutoMuteCommand(InteractionContext ctx, [Option("value", "Ob Spammer automatisch gemutet werden sollen")] bool? value = null)
-				{
-					ModernEmbedBuilder embedBuilder;
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
-
-					if (value.HasValue)
-					{
-						settings.AutoMute = value.Value;
-						AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
-
-						embedBuilder = new ModernEmbedBuilder
-						{
-							Title = "Einstellung geändert",
-							Color = 0x57F287,
-							Fields =
-							{
-								("Details", $"`Auto-Mute` auf {value} gesetzt")
-							}
-						};
-					}
-					else
-					{
-						embedBuilder = new ModernEmbedBuilder
-						{
-							Title = "Einstellung gelesen",
-							Color = 0x57F287,
-							Fields =
-							{
-								("Details", "`Auto-Mute` ist momentan " + (settings.AutoMute ? "aktiviert" : "deaktiviert"))
-							}
-						};
-					}
-
-					await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = !value.HasValue }.AddEmbed(embedBuilder.Build()));
-				}
 			}
 		}
 
@@ -224,7 +263,7 @@ namespace AntiSpam
 		{
 			ModernEmbedBuilder embedBuilder;
 			var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
-			if (settings.MuteRoleId == 0)
+			if (!settings.MuteRoleId.HasValue)
 			{
 				embedBuilder = new ModernEmbedBuilder
 				{
@@ -240,8 +279,8 @@ namespace AntiSpam
 				return;
 			}
 
-			_ = ctx.TargetMember.GrantRoleAsync(ctx.Guild.GetRole(settings.MuteRoleId));
-			AntiSpamModule.Instance.AddReminder(TimeSpan.FromMinutes(settings.MuteDuration), 0, new string[] { ctx.TargetMember.Guild.Id.ToString(), ctx.TargetMember.Id.ToString() });
+			_ = ctx.TargetMember.GrantRoleAsync(ctx.Guild.GetRole(settings.MuteRoleId.Value));
+			AntiSpamModule.Instance.AddReminder(TimeSpan.FromMinutes(settings.MuteDuration), new string[] { ctx.TargetMember.Guild.Id.ToString(), ctx.TargetMember.Id.ToString() });
 
 			embedBuilder = new ModernEmbedBuilder
 			{
