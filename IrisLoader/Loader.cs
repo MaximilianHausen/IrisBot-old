@@ -14,6 +14,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace IrisLoader
@@ -63,8 +64,7 @@ namespace IrisLoader
 
 			await Client.StartAsync();
 			IsConnected = true;
-			Console.ReadLine();
-			await Client.StopAsync();
+			await Task.Delay(Timeout.Infinite);
 		}
 
 		private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
