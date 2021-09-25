@@ -31,7 +31,7 @@ namespace IrisLoader.Commands
 				{
 					ModernEmbedBuilder embedBuilder;
 					// name, active, true:global/false:guild
-					List<(string, bool, bool)> moduleList = new List<(string, bool, bool)>();
+					var moduleList = new List<(string, bool, bool)>();
 					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild), true)));
 					Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(), false)));
 
@@ -178,13 +178,13 @@ namespace IrisLoader.Commands
 					// Wait for Message -> Download -> Load
 					isThinking = true;
 					await ctx.CreateResponseAsync(InteractionResponseType.DeferredChannelMessageWithSource);
-					Func<DiscordMessage, bool> condition = m =>
+					bool condition(DiscordMessage m)
 					{
 						bool rightUser = m.Author.Id == ctx.User.Id;
 						bool hasFile = m.Attachments.Count == 1;
 						bool isDll = hasFile && m.Attachments[0].FileName.EndsWith(".dll");
 						return rightUser && isDll;
-					};
+					}
 					InteractivityResult<DiscordMessage> fileInteraction = await ctx.Channel.GetNextMessageAsync(condition, new TimeSpan(0, 0, 30));
 
 					if (fileInteraction.TimedOut)

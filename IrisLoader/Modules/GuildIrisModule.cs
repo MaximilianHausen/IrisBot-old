@@ -162,8 +162,6 @@ namespace IrisLoader.Modules
 		public event AsyncEventHandler<GuildIrisModule, InviteCreateEventArgs> InviteCreated;
 		private Task InviteDeletedHandler(DiscordClient client, InviteDeleteEventArgs e) => e.Guild.Id == Guild.Id ? InviteDeleted.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildIrisModule, InviteDeleteEventArgs> InviteDeleted;
-		private Task MessageAcknowledgedHandler(DiscordClient client, MessageAcknowledgeEventArgs e) => e.Channel.GuildId == Guild.Id ? MessageAcknowledged.Invoke(this, e) : Task.CompletedTask;
-		public event AsyncEventHandler<GuildIrisModule, MessageAcknowledgeEventArgs> MessageAcknowledged;
 		private Task MessageCreatedHandler(DiscordClient client, MessageCreateEventArgs e) => e.Guild.Id == Guild.Id ? MessageCreated.Invoke(this, e) : Task.CompletedTask;
 		public event AsyncEventHandler<GuildIrisModule, MessageCreateEventArgs> MessageCreated;
 		private Task MessageDeletedHandler(DiscordClient client, MessageDeleteEventArgs e) => e.Guild.Id == Guild.Id ? MessageDeleted.Invoke(this, e) : Task.CompletedTask;

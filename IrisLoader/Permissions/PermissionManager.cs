@@ -12,9 +12,9 @@ namespace IrisLoader.Permissions
 {
 	internal static class PermissionManager
 	{
-		private static MySqlConnection con = new MySqlConnection();
-		private static MySqlCommand cmd = new MySqlCommand();
-		private static List<IrisPermission> permissions = new List<IrisPermission>();
+		private static readonly MySqlConnection con = new();
+		private static readonly MySqlCommand cmd = new();
+		private static readonly List<IrisPermission> permissions = new();
 
 		static PermissionManager()
 		{
@@ -50,7 +50,7 @@ namespace IrisLoader.Permissions
 		internal static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => GetPermissionAttributes(typeof(T)).Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guild?.Id)));
 		private static List<IRequireIrisPermissionAttribute> GetPermissionAttributes(Type type)
 		{
-			List<IRequireIrisPermissionAttribute> attributes = new List<IRequireIrisPermissionAttribute>();
+			var attributes = new List<IRequireIrisPermissionAttribute>();
 			type.GetMethods().ForEach(m => m.GetCustomAttributes<SlashRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
 			type.GetMethods().ForEach(m => m.GetCustomAttributes<ContextMenuRequireIrisPermissionAttribute>(true).ForEach(a => attributes.Add(a)));
 			type.GetNestedTypes().ForEach(t => attributes.AddRange(GetPermissionAttributes(t)));
@@ -80,7 +80,7 @@ namespace IrisLoader.Permissions
 		}
 		internal static string[] GetPermissions(DiscordGuild guild, DiscordRole role)
 		{
-			List<string> perms = new List<string>();
+			var perms = new List<string>();
 			cmd.CommandText = $"SELECT * FROM role_perms WHERE guild_id = {guild.Id} AND role_id = {role.Id}";
 			using MySqlDataReader reader = cmd.ExecuteReader();
 

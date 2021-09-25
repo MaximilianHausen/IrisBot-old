@@ -7,7 +7,7 @@ namespace IrisLoader.Modules
 {
 	internal static class ModuleIO
 	{
-		private readonly static JsonSerializerOptions ignoreNullOptions = new JsonSerializerOptions() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+		private readonly static JsonSerializerOptions ignoreNullOptions = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
 
 		/// <param name="relPath"> Has to begin with one slash </param>
 		internal static T ReadJson<T>(DiscordGuild guild, BaseIrisModule module, string relPath)
@@ -32,13 +32,13 @@ namespace IrisLoader.Modules
 
 		internal static DirectoryInfo GetModuleFileDirectory(DiscordGuild guild, string moduleName)
 		{
-			DirectoryInfo dir = new DirectoryInfo(GetGuildFileDirectory(guild).FullName + '/' + moduleName);
+			var dir = new DirectoryInfo(GetGuildFileDirectory(guild).FullName + '/' + moduleName);
 			Directory.CreateDirectory(dir.FullName);
 			return dir;
 		}
 		internal static DirectoryInfo GetGuildFileDirectory(DiscordGuild guild)
 		{
-			DirectoryInfo dir = new DirectoryInfo("./ModuleFiles/" + guild.Id);
+			var dir = new DirectoryInfo("./ModuleFiles/" + guild.Id);
 			Directory.CreateDirectory(dir.FullName);
 			return dir;
 		}

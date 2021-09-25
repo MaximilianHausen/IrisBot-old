@@ -10,7 +10,7 @@ namespace IrisLoader.Commands
 	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 	public class SlashCustomRequireGuildAttribute : SlashCheckBaseAttribute
 	{
-		private string message;
+		private readonly string message;
 		public SlashCustomRequireGuildAttribute(string errormessage)
 		{
 			message = errormessage;

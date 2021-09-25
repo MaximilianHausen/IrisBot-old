@@ -12,7 +12,7 @@ namespace AntiSpam
 {
 	public class AntiSpamModule : GlobalIrisModule
 	{
-		private readonly List<DiscordMessage> messageCache = new List<DiscordMessage>();
+		private readonly List<DiscordMessage> messageCache = new();
 		public static AntiSpamModule Instance { get; private set; }
 		public AntiSpamModule() => Instance = this;
 

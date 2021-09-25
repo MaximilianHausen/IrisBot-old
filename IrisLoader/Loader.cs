@@ -32,8 +32,8 @@ namespace IrisLoader
 		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
 
 		public static readonly Config config;
-		private static Dictionary<string, IrisModuleReference<GlobalIrisModule>> globalModules = new();
-		private static Dictionary<ulong, Dictionary<string, IrisModuleReference<GuildIrisModule>>> guildModules = new();
+		private static readonly Dictionary<string, IrisModuleReference<GlobalIrisModule>> globalModules = new();
+		private static readonly Dictionary<ulong, Dictionary<string, IrisModuleReference<GuildIrisModule>>> guildModules = new();
 
 		internal static void Main() => MainAsync().GetAwaiter().GetResult();
 
@@ -102,9 +102,9 @@ namespace IrisLoader
 		internal static string[] CheckDependencies(string assemblyPath)
 		{
 			// Load Assembly
-			AssemblyLoadContext scanContext = new AssemblyLoadContext("ModuleScan", true);
+			var scanContext = new AssemblyLoadContext("ModuleScan", true);
 			Assembly moduleAssembly;
-			using (FileStream fs = new FileStream(assemblyPath, FileMode.Open, FileAccess.Read))
+			using (var fs = new FileStream(assemblyPath, FileMode.Open, FileAccess.Read))
 			{
 				moduleAssembly = scanContext.LoadFromStream(fs);
 			}
@@ -126,20 +126,29 @@ namespace IrisLoader
 			// To absolute path
 			if (path.StartsWith('.'))
 				path = Path.GetFullPath(path);
-			// Is dll
-			if (!path.EndsWith(".dll") || !File.Exists(path)) return Task.FromResult(false);
-			// Name is okay
-			if (AssemblyName.GetAssemblyName(path).Name == "Loader") return Task.FromResult(false);
 
-			bool isValid = false;
+			// Is dll
+			if (!path.EndsWith(".dll") || !File.Exists(path))
+			{
+				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" is not a dll");
+				return Task.FromResult(false);
+			}
+			// Name is okay
+			if (AssemblyName.GetAssemblyName(path).Name == "Loader")
+			{
+				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "Module \"" + path + "\" cannot named \"Loader\"");
+				return Task.FromResult(false);
+			}
 
 			// Load Assembly
-			AssemblyLoadContext validationContext = new AssemblyLoadContext("ModuleValidation", true);
+			var validationContext = new AssemblyLoadContext("ModuleValidation", true);
 			Assembly moduleAssembly;
-			using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
 			{
 				moduleAssembly = validationContext.LoadFromStream(fs);
 			}
+
+			bool isValid = false;
 
 			// Check and unload
 			if (isGlobal)
@@ -168,54 +177,51 @@ namespace IrisLoader
 		internal static Dictionary<string, IrisModuleReference<GlobalIrisModule>> GetGlobalModules() => globalModules;
 		internal static async Task<bool> LoadGlobalModuleAsync(string name)
 		{
-			bool success = false;
-
 			if (globalModules.ContainsKey(name))
 			{
 				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is already loaded");
 				return false;
 			}
 
-			// Find and load module in isolated context
-			foreach (FileInfo file in GetGlobalModuleDirectory().GetFiles().Where(f => f.Extension == ".dll"))
+			FileInfo file = GetGlobalModuleDirectory().GetFiles().FirstOrDefault(f => f.Extension == ".dll" && AssemblyName.GetAssemblyName(f.FullName).Name == name);
+			if (file == null)
 			{
-				if (AssemblyName.GetAssemblyName(file.FullName).Name != name) continue;
-				if (!await IsValidModule(file.FullName, true)) continue;
-
-				// Load Assembly
-				AssemblyLoadContext context = new AssemblyLoadContext(name, true);
-				Assembly assembly;
-				using (FileStream fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read))
-				{
-					assembly = context.LoadFromStream(fs);
-				}
-
-				// Load module
-				Type moduleType = assembly.ExportedTypes.Where(t => typeof(GlobalIrisModule).IsAssignableFrom(t)).First();
-				GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
-				globalModules.Add(name, new IrisModuleReference<GlobalIrisModule>(module, assembly, context, file));
-				await module.Load();
-				if (IsConnected) await module.Ready();
-				success = true;
-				break;
+				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it does not exist");
+				return false;
+			}
+			if (!await IsValidModule(file.FullName, true))
+			{
+				Logger.Log(LogLevel.Error, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is not a valid module");
+				return false;
 			}
 
-			Logger.Log(success ? LogLevel.Information : LogLevel.Error, 0, "ModuleLoader", (success ? "Global module loaded: " : "Global module could not be loaded: ") + name);
-			return success;
+			// Load Assembly
+			var context = new AssemblyLoadContext(name, true);
+			Assembly assembly;
+			using (var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read))
+			{
+				assembly = context.LoadFromStream(fs);
+			}
+
+			// Load module
+			Type moduleType = assembly.ExportedTypes.First(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
+			GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
+			globalModules.Add(name, new IrisModuleReference<GlobalIrisModule>(module, assembly, context, file));
+			await module.Load();
+			if (IsConnected) _ = module.Ready();
+
+			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module loaded: " + name);
+			return true;
 		}
 		internal static async Task<(int, int)> LoadAllGlobalModulesAsync()
 		{
 			int totalCount = 0;
 			int loadedCount = 0;
 
-			DirectoryInfo moduleDirectory = GetGlobalModuleDirectory();
-
-			// Load Modules
-			foreach (FileInfo file in moduleDirectory.GetFiles().Where(f => f.Extension == ".dll"))
+			foreach (FileInfo file in GetGlobalModuleDirectory().GetFiles().Where(f => f.Extension == ".dll"))
 			{
 				totalCount++;
-				string moduleName = AssemblyName.GetAssemblyName(file.FullName).Name;
-				if (await LoadGlobalModuleAsync(moduleName)) loadedCount++;
+				if (await LoadGlobalModuleAsync(AssemblyName.GetAssemblyName(file.FullName).Name)) loadedCount++;
 			}
 
 			Logger.Log(loadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 0, "ModuleLoader", $"Loaded {loadedCount}/{totalCount} global modules");
@@ -227,28 +233,29 @@ namespace IrisLoader
 			bool isLoaded = globalModules.TryGetValue(name, out IrisModuleReference<GlobalIrisModule> toUnload);
 			if (!isLoaded)
 			{
-				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not unloaded because it is not loaded");
+				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" could not be unloaded because no module of that name is currently loaded");
 				return false;
 			}
 
 			await toUnload.module.Unload();
+			toUnload.context.Unload();
 			globalModules.Remove(name);
 			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
 			return true;
 		}
 		internal static async Task<(int, int)> UnloadAllGlobalModulesAsync()
 		{
-			int moduleCount = 0;
+			int totalCount = 0;
 			int unloadedCount = 0;
 
 			foreach (IrisModuleReference<GlobalIrisModule> module in globalModules.Values)
 			{
-				moduleCount++;
+				totalCount++;
 				if (await UnloadGlobalModuleAsync(module.module.Name)) unloadedCount++;
 			}
 
-			Logger.Log(unloadedCount == moduleCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{moduleCount} global modules");
-			return (unloadedCount, moduleCount);
+			Logger.Log(unloadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{totalCount} global modules");
+			return (unloadedCount, totalCount);
 		}
 		#endregion
 		#region Guild Modules

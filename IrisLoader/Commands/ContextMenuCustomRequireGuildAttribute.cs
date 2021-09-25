@@ -10,7 +10,7 @@ namespace IrisLoader.Commands
 	[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 	public class ContextMenuCustomRequireGuildAttribute : ContextMenuCheckBaseAttribute
 	{
-		private string message;
+		private readonly string message;
 		public ContextMenuCustomRequireGuildAttribute(string errormessage)
 		{
 			message = errormessage;

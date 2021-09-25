@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -9,24 +8,15 @@ namespace IrisLoader
 {
 	public static class Reminder
 	{
-		private struct ReminderModel : IEquatable<ReminderModel>
+		private class ReminderModel
 		{
 			public DateTime Time { get; set; }
 			public string ModuleName { get; set; }
 			public string[] Values { get; set; }
 
-			public bool Equals(ReminderModel other)
+			public override bool Equals(object obj)
 			{
-				return !(!Time.Equals(other.Time) || !ModuleName.Equals(other.ModuleName) || !Values.SequenceEqual(other.Values));
-			}
-
-			public static bool operator ==(ReminderModel reminder1, ReminderModel reminder2)
-			{
-				return !(!reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Values.SequenceEqual(reminder2.Values));
-			}
-			public static bool operator !=(ReminderModel reminder1, ReminderModel reminder2)
-			{
-				return !reminder1.Time.Equals(reminder2.Time) || !reminder1.ModuleName.Equals(reminder2.ModuleName) || !reminder1.Values.SequenceEqual(reminder2.Values);
+				return obj is ReminderModel r && Equals(r);
 			}
 		}
 
@@ -65,7 +55,7 @@ namespace IrisLoader
 				await Task.Delay(reminder.Time - DateTime.Now);
 
 			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
-			reminders.RemoveAll(r => r == reminder);
+			reminders.RemoveAll(r => r.Equals(reminder));
 			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
 
 			if (reminder.ModuleName == "Loader")

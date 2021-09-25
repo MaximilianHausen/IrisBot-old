@@ -6,7 +6,7 @@ namespace IrisLoader.Modules
 {
 	internal static class ModuleSettings
 	{
-		private static Dictionary<(ulong, string), object> settings = new Dictionary<(ulong, string), object>();
+		private static readonly Dictionary<(ulong, string), object> settings = new();
 
 		internal static T GetSettings<T>(DiscordGuild guild, BaseIrisModule module) where T : new()
 		{
