@@ -72,9 +72,36 @@ namespace IrisLoader.Audio
 				// Bot already left?
 				if (!connections.ContainsKey(args.Before.Channel.Id)) return;
 				// Still users left?
-				if (args.Before.Channel.Users.Count(u => !voiceClients.ContainsKey(u.Id)) > 1) return;
+				if (args.Before.Channel.Users.Count(u => !voiceClients.ContainsKey(u.Id)) > 0) return;
 
 				connections[args.Before.Channel.Id].Disconnect();
+			}
+			// User moved
+			else if (args.After?.Channel != null && args.Before?.Channel != null && args.Before.Channel != args.After.Channel && !voiceClients.ContainsKey(args.User.Id))
+			{
+				#region Leave old
+				// Bot already left?
+				if (!connections.ContainsKey(args.Before.Channel.Id)) goto Join;
+				// Still users left?
+				if (args.Before.Channel.Users.Count(u => !voiceClients.ContainsKey(u.Id)) > 0) goto Join;
+
+				connections[args.Before.Channel.Id].Disconnect();
+				#endregion
+
+				Join:
+				#region Join new
+				// Bot already joined?
+				if (connections.ContainsKey(args.After.Channel.Id)) return;
+
+				foreach (var client in voiceClients.Values)
+				{
+					if (client.GetVoiceNext().GetConnection(args.Guild) == null)
+					{
+						connections.Add(args.After.Channel.Id, await client.GetVoiceNext().ConnectAsync(await args.After.Channel.AsClient(client)));
+						return;
+					}
+				}
+				#endregion
 			}
 		}
 	}
