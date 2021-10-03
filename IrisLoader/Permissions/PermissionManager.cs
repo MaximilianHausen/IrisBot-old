@@ -18,7 +18,7 @@ namespace IrisLoader.Permissions
 
 		static PermissionManager()
 		{
-			string cs = "server=localhost;userid=root;sslmode=none;password=" + Loader.config.MySqlPassword;
+			string cs = "server=localhost;userid=root;password=" + Loader.config.MySqlPassword;
 
 			con.ConnectionString = cs;
 			cmd.Connection = con;

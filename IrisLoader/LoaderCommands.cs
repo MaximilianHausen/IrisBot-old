@@ -4,6 +4,7 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
 using HSNXT.DSharpPlus.ModernEmbedBuilder;
+using IrisLoader.Commands;
 using IrisLoader.Modules;
 using IrisLoader.Permissions;
 using MoreLinq;
@@ -15,7 +16,7 @@ using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace IrisLoader.Commands
+namespace IrisLoader
 {
 	public class LoaderCommands : ApplicationCommandModule
 	{
@@ -72,29 +73,12 @@ namespace IrisLoader.Commands
 				[SlashCustomRequireGuild]
 				[SlashRequireIrisPermission("ToggleModules")]
 				[SlashCommand("toggle", "Ein Modul an-/ausschalten")]
-				public async Task ToggleCommand(InteractionContext ctx, [Option("module", "Name des Moduls")] string moduleName)
+				public async Task ToggleCommand(InteractionContext ctx, [Autocomplete(typeof(ModuleAutocompleteProvider))][Option("module", "Name des Moduls", true)] string moduleName)
 				{
 					ModernEmbedBuilder embedBuilder;
 					bool prevState;
 					GlobalIrisModule globalModule = Loader.GetGlobalModules().Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
 					GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
-
-					// Exit on invalid module
-					if (globalModule == null && guildModule == null)
-					{
-						embedBuilder = new ModernEmbedBuilder
-						{
-							Title = "Fehler",
-							Color = 0xED4245,
-							Fields =
-							{
-								("Details", $"Modul `{moduleName}` nicht gefunden")
-							}
-						};
-
-						await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
-						return;
-					}
 
 					if (globalModule != null)
 					{
@@ -309,26 +293,11 @@ namespace IrisLoader.Commands
 
 				[SlashRequireIrisPermission("ManageModules")]
 				[SlashCommand("delete", "Löscht ein Modul")]
-				public async Task DeleteCommand(InteractionContext ctx, [Option("name", "Name des zu löschenden Moduls")] string name)
+				public async Task DeleteCommand(InteractionContext ctx, [Autocomplete(typeof(ModuleAutocompleteProvider))][Option("name", "Name des zu löschenden Moduls", true)] string name)
 				{
 					bool usedByOwner = ctx.Client.CurrentApplication.Owners.Any(x => x.Id == ctx.User.Id);
 					IrisModuleReference<GlobalIrisModule> globalModule = Loader.GetGlobalModules().Where(m => m.Key == name).FirstOrDefault().Value;
 					IrisModuleReference<GuildIrisModule> guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == name).FirstOrDefault().Value;
-
-					if (globalModule.module == null && guildModule.module == null)
-					{
-						var embedBuilder = new ModernEmbedBuilder
-						{
-							Title = "Fehler",
-							Color = 0xED4245,
-							Fields =
-							{
-								("Details", $"Modul `{name}` nicht gefunden")
-							}
-						};
-						await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
-						return;
-					}
 
 					if (globalModule.module != null)
 					{
@@ -420,7 +389,7 @@ namespace IrisLoader.Commands
 				[SlashCustomRequireGuild]
 				[SlashRequireIrisPermission("ManagePermissions")]
 				[SlashCommand("set", "Setzt eine Berechtigung für eine bestimmte Rolle", false)]
-				public async Task PermissionSetCommand(InteractionContext ctx, [Option("role", "Die Rolle, für die die Berechtigung gesetzt werden soll")] DiscordRole role, [ChoiceProvider(typeof(GlobalPermissionChoiceProvider))][Option("perm", "Die zu setzende Berechtigung")] string perm, [Option("value", "Wert, auf den die Berechtigung gesetzt werden soll")] bool value)
+				public async Task PermissionSetCommand(InteractionContext ctx, [Option("role", "Die Rolle, für die die Berechtigung gesetzt werden soll")] DiscordRole role, [Autocomplete(typeof(PermissionAutocompleteProvider))][Option("perm", "Die zu setzende Berechtigung", true)] string perm, [Option("value", "Wert, auf den die Berechtigung gesetzt werden soll")] bool value)
 				{
 					PermissionManager.SetPermission(ctx.Guild, role, perm, value);
 

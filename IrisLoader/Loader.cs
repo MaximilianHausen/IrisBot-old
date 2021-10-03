@@ -2,7 +2,6 @@
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
-using IrisLoader.Commands;
 using IrisLoader.Modules;
 using IrisLoader.Permissions;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace IrisLoader
@@ -50,21 +48,25 @@ namespace IrisLoader
 			});
 
 			await Client.UseInteractivityAsync();
+
 			SlashExt = await Client.UseSlashCommandsAsync();
 			SlashExt.RegisterCommands<LoaderCommands>();
+			PermissionManager.RegisterPermissions<LoaderCommands>(null);
 
 			Directory.CreateDirectory(Directory.GetCurrentDirectory() + "/ModuleFiles");
 
-			PermissionManager.RegisterPermissions<LoaderCommands>(null);
 			await LoadAllGlobalModulesAsync();
 
 			// Register startup events
 			Client.GuildDownloadCompleted += Ready;
 			Client.GuildDeleted += GuildDeleted;
 
+			await Audio.AudioConnectionManager.Initialize(config);
+
 			await Client.StartAsync();
 			IsConnected = true;
-			await Task.Delay(Timeout.Infinite);
+			await Task.Run(() => Console.ReadKey());
+			await Client.StopAsync();
 		}
 
 		private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
