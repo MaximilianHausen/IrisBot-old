@@ -61,11 +61,12 @@ namespace IrisLoader
 			Client.GuildDownloadCompleted += Ready;
 			Client.GuildDeleted += GuildDeleted;
 
-			await Audio.AudioConnectionManager.Initialize(config);
+			await Audio.AudioConnectionManager.Connect(config);
 
 			await Client.StartAsync();
 			IsConnected = true;
 			await Task.Run(() => Console.ReadKey());
+			await Audio.AudioConnectionManager.Disconnect();
 			await Client.StopAsync();
 		}
 

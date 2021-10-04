@@ -2,6 +2,7 @@
 using DSharpPlus.EventArgs;
 using DSharpPlus.VoiceNext;
 using Microsoft.Extensions.Logging;
+using MoreLinq;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,8 +16,10 @@ namespace IrisLoader.Audio
 		// channelId, Connection
 		private static readonly Dictionary<ulong, VoiceNextConnection> connections = new();
 
-		public static async Task Initialize(Config config)
+		public static async Task Connect(Config config)
 		{
+			if (voiceClients.Any()) return;
+
 			// Connect Discord
 			foreach (string token in config.AudioTokens)
 			{
@@ -36,6 +39,24 @@ namespace IrisLoader.Audio
 			}
 
 			Loader.Client.VoiceStateUpdated += VoiceStateUpdated;
+		}
+
+		public static async Task Disconnect()
+		{
+			if (!voiceClients.Any()) return;
+
+			foreach (var conn in connections)
+			{
+				conn.Value.Disconnect();
+				connections.Remove(conn.Key);
+			}
+
+			foreach (var client in voiceClients)
+			{
+				await client.Value.DisconnectAsync();
+			}
+
+			Loader.Client.VoiceStateUpdated -= VoiceStateUpdated;
 		}
 
 		public static async Task VoiceStateUpdated(DiscordClient textClient, VoiceStateUpdateEventArgs args)
