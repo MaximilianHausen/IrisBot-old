@@ -21,7 +21,7 @@ namespace AntiSpam
 				[SlashCommand("currentsettings", "Gibt eine Übersicht über alle Einstellungen von AntiSpam")]
 				public async Task SettingsCommand(InteractionContext ctx)
 				{
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 
 					var embedBuilder = new ModernEmbedBuilder
 					{
@@ -44,7 +44,7 @@ namespace AntiSpam
 				public async Task AutoMuteCommand(InteractionContext ctx, [Option("value", "Ob Spammer automatisch gemutet werden sollen")] bool? value = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 					bool isEphemeral = true;
 
 					if (value.HasValue)
@@ -53,7 +53,7 @@ namespace AntiSpam
 						{
 							isEphemeral = false;
 							settings.AutoMute = value.Value;
-							AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
+							AntiSpamModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 							embedBuilder = new ModernEmbedBuilder
 							{
@@ -99,7 +99,7 @@ namespace AntiSpam
 				public async Task MuteRoleCommand(InteractionContext ctx, [Option("role", "Die Rolle, die zum muten verwendet werden soll")] DiscordRole role = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 					bool canGrantRole = false;
 
 					if (role != null)
@@ -107,7 +107,7 @@ namespace AntiSpam
 						if (canGrantRole = (await ctx.Guild.GetMemberAsync(ctx.Client.CurrentUser.Id)).Roles.Any(r => r.Position > role.Position))
 						{
 							settings.MuteRoleId = role.Id;
-							AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
+							AntiSpamModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 							embedBuilder = new ModernEmbedBuilder
 							{
@@ -168,14 +168,14 @@ namespace AntiSpam
 				public async Task MuteDurationCommand(InteractionContext ctx, [Option("weeks", "Wochen, für die die Mute-Rolle vergeben wird")] long weeks = 0, [Option("days", "Tage, für die die Mute-Rolle vergeben wird")] long days = 0, [Option("hours", "Stunden, für die die Mute-Rolle vergeben wird")] long hours = 0, [Option("minutes", "Minuten, für die die Mute-Rolle vergeben wird")] long minutes = 0)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 
 					if (weeks + days + hours + minutes > 0)
 					{
 						ulong timeInMinutes = (ulong)weeks * 10080 + (ulong)days * 1440 + (ulong)hours * 60 + (ulong)minutes;
 
 						settings.MuteDuration = timeInMinutes;
-						AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiSpamModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -220,12 +220,12 @@ namespace AntiSpam
 				public async Task AutoDeleteCommand(InteractionContext ctx, [Option("value", "Ob Spam automatisch gelöscht werden sollen")] bool? value = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+					var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 
 					if (value.HasValue)
 					{
 						settings.AutoDelete = value.Value;
-						AntiSpamModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiSpamModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -262,7 +262,7 @@ namespace AntiSpam
 		public async Task MuteContextCommand(ContextMenuContext ctx)
 		{
 			ModernEmbedBuilder embedBuilder;
-			var settings = AntiSpamModule.Instance.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
+			var settings = AntiSpamModule.Instance.Connection.GetSettings<AntiSpamSettingsModel>(ctx.Guild);
 			if (!settings.MuteRoleId.HasValue)
 			{
 				embedBuilder = new ModernEmbedBuilder
@@ -280,7 +280,7 @@ namespace AntiSpam
 			}
 
 			_ = ctx.TargetMember.GrantRoleAsync(ctx.Guild.GetRole(settings.MuteRoleId.Value));
-			AntiSpamModule.Instance.AddReminder(TimeSpan.FromMinutes(settings.MuteDuration), new string[] { ctx.TargetMember.Guild.Id.ToString(), ctx.TargetMember.Id.ToString() });
+			AntiSpamModule.Instance.Connection.AddReminder(TimeSpan.FromMinutes(settings.MuteDuration), new string[] { ctx.TargetMember.Guild.Id.ToString(), ctx.TargetMember.Id.ToString() });
 
 			embedBuilder = new ModernEmbedBuilder
 			{

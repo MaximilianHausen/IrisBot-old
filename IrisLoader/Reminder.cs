@@ -1,6 +1,8 @@
-﻿using System;
+﻿using IrisLoader.Modules;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -16,7 +18,8 @@ namespace IrisLoader
 
 			public override bool Equals(object obj)
 			{
-				return obj is ReminderModel r && Equals(r);
+				if (obj is not ReminderModel model) return false;
+				return obj is ReminderModel r && Time == model.Time && ModuleName == model.ModuleName && Values.SequenceEqual(model.Values);
 			}
 		}
 
@@ -61,7 +64,14 @@ namespace IrisLoader
 			if (reminder.ModuleName == "Loader")
 				_ = Loader.ReminderRecieved(reminder.Values);
 			else
-				_ = Loader.GetModuleByName(reminder.ModuleName).InvokeEvent(reminder.Values);
+			{
+				BaseIrisModule module = Loader.GetModuleByName(reminder.ModuleName);
+
+				if (module is GlobalIrisModule globalModule)
+					_ = globalModule.Connection.InvokeEvent(reminder.Values);
+				else
+					_ = (module as GuildIrisModule).Connection.InvokeEvent(reminder.Values);
+			}
 		}
 	}
 }

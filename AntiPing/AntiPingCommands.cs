@@ -20,7 +20,7 @@ namespace AntiPing
 				[SlashCommand("currentsettings", "Gibt eine Übersicht über alle Einstellungen von AntiPing")]
 				public async Task SettingsCommand(InteractionContext ctx)
 				{
-					var settings = AntiPingModule.Instance.GetSettings<AntiPingSettingsModel>(ctx.Guild);
+					var settings = AntiPingModule.Instance.Connection.GetSettings<AntiPingSettingsModel>(ctx.Guild);
 
 					var embedBuilder = new ModernEmbedBuilder
 					{
@@ -43,14 +43,14 @@ namespace AntiPing
 				public async Task AutoReactCommand(InteractionContext ctx, [Option("value", "Ob auf unnötige Pings automatisch reagiert werden soll")] bool? value = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiPingModule.Instance.GetSettings<AntiPingSettingsModel>(ctx.Guild);
+					var settings = AntiPingModule.Instance.Connection.GetSettings<AntiPingSettingsModel>(ctx.Guild);
 					bool isEphemeral = true;
 
 					if (value.HasValue && settings.ReactionEmoji != null)
 					{
 						isEphemeral = false;
 						settings.AutoReact = value.Value;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -110,14 +110,14 @@ namespace AntiPing
 					}
 
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiPingModule.Instance.GetSettings<AntiPingSettingsModel>(ctx.Guild);
+					var settings = AntiPingModule.Instance.Connection.GetSettings<AntiPingSettingsModel>(ctx.Guild);
 					bool isEphemeral = true;
 
 					if (emoji != null && DiscordEmoji.IsValidUnicode(emoji))
 					{
 						isEphemeral = false;
 						settings.ReactionEmoji = emoji;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -133,7 +133,7 @@ namespace AntiPing
 					{
 						isEphemeral = false;
 						settings.ReactionEmoji = ctx.Guild.Emojis.First(e => e.Value.Name == GetStringBetweenCharacters(emoji, ':', ':')).Key.ToString();
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -190,12 +190,12 @@ namespace AntiPing
 				public async Task PingBackCommand(InteractionContext ctx, [Option("value", "Ob bei unnötigen Pings nach einiger Zeit zurückgepingt werden soll")] bool? value = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiPingModule.Instance.GetSettings<AntiPingSettingsModel>(ctx.Guild);
+					var settings = AntiPingModule.Instance.Connection.GetSettings<AntiPingSettingsModel>(ctx.Guild);
 
 					if (value.HasValue)
 					{
 						settings.PingBack = value.Value;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -228,7 +228,7 @@ namespace AntiPing
 				public async Task PingTimeCommand(InteractionContext ctx, [Option("min", "Minimale Zeit in Minuten")] long? min = null, [Option("max", "Maximale Zeit in Minuten")] long? max = null)
 				{
 					ModernEmbedBuilder embedBuilder;
-					var settings = AntiPingModule.Instance.GetSettings<AntiPingSettingsModel>(ctx.Guild);
+					var settings = AntiPingModule.Instance.Connection.GetSettings<AntiPingSettingsModel>(ctx.Guild);
 					bool isEphemeral = false;
 
 					if ((min.HasValue && min < 0) || (max.HasValue && max < 0))
@@ -248,7 +248,7 @@ namespace AntiPing
 					{
 						settings.MinPingDelay = min.Value;
 						settings.MaxPingDelay = max.Value;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -263,7 +263,7 @@ namespace AntiPing
 					else if (min.HasValue)
 					{
 						settings.MinPingDelay = min.Value;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{
@@ -278,7 +278,7 @@ namespace AntiPing
 					else if (max.HasValue)
 					{
 						settings.MinPingDelay = min.Value;
-						AntiPingModule.Instance.SetSettings(ctx.Guild, settings);
+						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
 						{

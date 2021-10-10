@@ -15,39 +15,39 @@ namespace AntiPing
 
 		public override Task Load()
 		{
-			Client.MessageCreated += MessageCreated;
-			Client.GuildEmojisUpdated += EmojisEdited;
-			ReminderRecieved += ProcessReminder;
-			RegisterCommands<AntiPingCommands>();
+			Connection.Client.MessageCreated += MessageCreated;
+			Connection.Client.GuildEmojisUpdated += EmojisEdited;
+			Connection.ReminderRecieved += ProcessReminder;
+			Connection.RegisterCommands<AntiPingCommands>();
 			return Task.CompletedTask;
 		}
 
 		public override Task Unload()
 		{
-			Client.MessageCreated -= MessageCreated;
-			ReminderRecieved -= ProcessReminder;
+			Connection.Client.MessageCreated -= MessageCreated;
+			Connection.ReminderRecieved -= ProcessReminder;
 			return Task.CompletedTask;
 		}
 
 		public override Task Ready()
 		{
-			UpdateFromFile<AntiPingSettingsModel>();
+			Connection.UpdateFromFile<AntiPingSettingsModel>();
 			return Task.CompletedTask;
 		}
 
-		public override bool IsActive(DiscordGuild guild) => GetSettings<AntiPingSettingsModel>(guild).Active;
+		public override bool IsActive(DiscordGuild guild) => Connection.GetSettings<AntiPingSettingsModel>(guild).Active;
 		public override void SetActive(DiscordGuild guild, bool state)
 		{
-			var settings = GetSettings<AntiPingSettingsModel>(guild);
+			var settings = Connection.GetSettings<AntiPingSettingsModel>(guild);
 			settings.Active = state;
-			SetSettings(guild, settings);
+			Connection.SetSettings(guild, settings);
 		}
 
 		public async Task MessageCreated(DiscordClient client, MessageCreateEventArgs args)
 		{
-			if (args.Guild == null || args.Author.IsBot || !GetSettings<AntiPingSettingsModel>(args.Guild).Active) return;
+			if (args.Guild == null || args.Author.IsBot || !Connection.GetSettings<AntiPingSettingsModel>(args.Guild).Active) return;
 
-			var settings = GetSettings<AntiPingSettingsModel>(args.Guild);
+			var settings = Connection.GetSettings<AntiPingSettingsModel>(args.Guild);
 			if (HasReplyPing(args.Message) && ((args.Message.Timestamp - args.Message.ReferencedMessage.Timestamp) < new TimeSpan(0, 30, 0)))
 			{
 				if (settings.AutoReact && settings.ReactionEmoji != null)
@@ -56,14 +56,14 @@ namespace AntiPing
 				}
 				if (settings.PingBack)
 				{
-					AddReminder(TimeSpan.FromMinutes(new Random().Next((int)settings.MinPingDelay, (int)settings.MaxPingDelay)), new string[] { args.Guild.Id.ToString(), args.Channel.Id.ToString(), args.Author.Id.ToString() });
+					Connection.AddReminder(TimeSpan.FromMinutes(new Random().Next((int)settings.MinPingDelay, (int)settings.MaxPingDelay)), new string[] { args.Guild.Id.ToString(), args.Channel.Id.ToString(), args.Author.Id.ToString() });
 				}
 			}
 		}
 
 		public async Task ProcessReminder(BaseIrisModule module, ReminderEventArgs args)
 		{
-			DiscordClient client = Client.GetShard(ulong.Parse(args.Values[0]));
+			DiscordClient client = Connection.Client.GetShard(ulong.Parse(args.Values[0]));
 			try
 			{
 				var channel = await client.GetChannelAsync(ulong.Parse(args.Values[1]));
@@ -76,12 +76,12 @@ namespace AntiPing
 
 		public Task EmojisEdited(DiscordClient client, GuildEmojisUpdateEventArgs args)
 		{
-			var settings = GetSettings<AntiPingSettingsModel>(args.Guild);
+			var settings = Connection.GetSettings<AntiPingSettingsModel>(args.Guild);
 			if (!DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) && !args.EmojisAfter.ContainsKey(ulong.Parse(settings.ReactionEmoji)))
 			{
 				settings.AutoReact = false;
 				settings.ReactionEmoji = null;
-				SetSettings(args.Guild, settings);
+				Connection.SetSettings(args.Guild, settings);
 			}
 			return Task.CompletedTask;
 		}

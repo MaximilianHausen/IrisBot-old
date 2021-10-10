@@ -1,6 +1,4 @@
-﻿using Emzi0767.Utilities;
-using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace IrisLoader.Modules
 {
@@ -18,11 +16,5 @@ namespace IrisLoader.Modules
 		public abstract Task Ready();
 		/// <summary> Is called before the module is unloaded. </summary>
 		public abstract Task Unload();
-
-		#region Reminder
-		protected event AsyncEventHandler<BaseIrisModule, ReminderEventArgs> ReminderRecieved;
-		internal Task InvokeEvent(string[] values) => ReminderRecieved.Invoke(this, new ReminderEventArgs() { Values = values });
-		public void AddReminder(TimeSpan delay, string[] values) => Reminder.AddReminder(delay, Name, values);
-		#endregion
 	}
 }
