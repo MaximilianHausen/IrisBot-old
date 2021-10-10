@@ -1,4 +1,5 @@
-﻿using DSharpPlus;
+﻿using CliWrap;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.SlashCommands;
@@ -61,12 +62,17 @@ namespace IrisLoader
 			Client.GuildDownloadCompleted += Ready;
 			Client.GuildDeleted += GuildDeleted;
 
-			await Audio.AudioConnectionManager.Connect(config);
+			await Audio.AudioConnectionManager.Connect(config.AudioTokens);
 
 			await Client.StartAsync();
 			IsConnected = true;
+
 			await Task.Run(() => Console.ReadKey());
+
+			Console.WriteLine();
+			Console.WriteLine("Audio: ");
 			await Audio.AudioConnectionManager.Disconnect();
+			Console.WriteLine("Shards: ");
 			await Client.StopAsync();
 		}
 

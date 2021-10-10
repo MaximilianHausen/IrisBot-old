@@ -1,8 +1,8 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.VoiceNext;
 using Microsoft.Extensions.Logging;
-using MoreLinq;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,14 +14,14 @@ namespace IrisLoader.Audio
 		// userId, DiscordClient
 		private static readonly Dictionary<ulong, DiscordClient> voiceClients = new();
 		// channelId, Connection
-		private static readonly Dictionary<ulong, VoiceNextConnection> connections = new();
+		private static readonly Dictionary<ulong, IrisAudioConnection> connections = new();
 
-		public static async Task Connect(Config config)
+		internal static async Task Connect(IEnumerable<string> audioTokens)
 		{
 			if (voiceClients.Any()) return;
 
 			// Connect Discord
-			foreach (string token in config.AudioTokens)
+			foreach (string token in audioTokens)
 			{
 				var newClient = new DiscordClient(new DiscordConfiguration
 				{
@@ -32,7 +32,7 @@ namespace IrisLoader.Audio
 					MinimumLogLevel = LogLevel.Error
 				});
 
-				newClient.UseVoiceNext(new VoiceNextConfiguration());
+				newClient.UseVoiceNext(new VoiceNextConfiguration() { AudioFormat = new AudioFormat(voiceApplication: VoiceApplication.LowLatency) });
 				await newClient.ConnectAsync();
 
 				voiceClients.Add(newClient.CurrentUser.Id, newClient);
@@ -40,14 +40,13 @@ namespace IrisLoader.Audio
 
 			Loader.Client.VoiceStateUpdated += VoiceStateUpdated;
 		}
-
-		public static async Task Disconnect()
+		internal static async Task Disconnect()
 		{
 			if (!voiceClients.Any()) return;
 
 			foreach (var conn in connections)
 			{
-				conn.Value.Disconnect();
+				conn.Value.VoiceNext.Disconnect();
 				connections.Remove(conn.Key);
 			}
 
@@ -59,18 +58,22 @@ namespace IrisLoader.Audio
 			Loader.Client.VoiceStateUpdated -= VoiceStateUpdated;
 		}
 
-		public static async Task VoiceStateUpdated(DiscordClient textClient, VoiceStateUpdateEventArgs args)
+		internal static IrisAudioConnection GetConnection(DiscordChannel channel) => connections.GetValueOrDefault(channel.Id);
+
+		private static async Task VoiceStateUpdated(DiscordClient textClient, VoiceStateUpdateEventArgs args)
 		{
 			// Bot left / got kicked
 			if (args.After?.Channel == null && args.Before?.Channel != null && voiceClients.ContainsKey(args.User.Id))
 			{
+				connections[args.Before.Channel.Id].Dispose();
 				connections.Remove(args.Before.Channel.Id);
 			}
 			// Bot got moved
 			else if (args.After?.Channel != null && args.Before?.Channel != null && args.Before.Channel != args.After.Channel && voiceClients.ContainsKey(args.User.Id))
 			{
+				connections[args.Before.Channel.Id].Dispose();
 				connections.Remove(args.Before.Channel.Id);
-				connections.Add(args.After.Channel.Id, voiceClients[args.User.Id].GetVoiceNext().GetConnection(args.Guild));
+				connections.Add(args.After.Channel.Id, new IrisAudioConnection(voiceClients[args.User.Id].GetVoiceNext().GetConnection(args.Guild)));
 			}
 			// User joined
 			else if (args.After?.Channel != null && args.Before?.Channel == null && !voiceClients.ContainsKey(args.User.Id))
@@ -80,9 +83,9 @@ namespace IrisLoader.Audio
 
 				foreach (var client in voiceClients.Values)
 				{
-					if (client.GetVoiceNext().GetConnection(args.Guild) == null)
+					if (client.Guilds.ContainsKey(args.Guild.Id) && client.GetVoiceNext().GetConnection(args.Guild) == null)
 					{
-						connections.Add(args.After.Channel.Id, await client.GetVoiceNext().ConnectAsync(await args.After.Channel.AsClient(client)));
+						connections.Add(args.After.Channel.Id, new IrisAudioConnection(await args.After.Channel.AsClient(client).Result.ConnectAsync()));
 						return;
 					}
 				}
@@ -93,9 +96,9 @@ namespace IrisLoader.Audio
 				// Bot already left?
 				if (!connections.ContainsKey(args.Before.Channel.Id)) return;
 				// Still users left?
-				if (args.Before.Channel.Users.Count(u => !voiceClients.ContainsKey(u.Id)) > 0) return;
+				if (args.Before.Channel.Users.Any(u => !voiceClients.ContainsKey(u.Id))) return;
 
-				connections[args.Before.Channel.Id].Disconnect();
+				connections[args.Before.Channel.Id].VoiceNext.Disconnect();
 			}
 			// User moved
 			else if (args.After?.Channel != null && args.Before?.Channel != null && args.Before.Channel != args.After.Channel && !voiceClients.ContainsKey(args.User.Id))
@@ -104,21 +107,20 @@ namespace IrisLoader.Audio
 				// Bot already left?
 				if (!connections.ContainsKey(args.Before.Channel.Id)) goto Join;
 				// Still users left?
-				if (args.Before.Channel.Users.Count(u => !voiceClients.ContainsKey(u.Id)) > 0) goto Join;
+				if (args.Before.Channel.Users.Any(u => !voiceClients.ContainsKey(u.Id))) goto Join;
 
-				connections[args.Before.Channel.Id].Disconnect();
-				#endregion
-
-				Join:
+				connections[args.Before.Channel.Id].VoiceNext.Disconnect();
+			#endregion
+			Join:
 				#region Join new
 				// Bot already joined?
 				if (connections.ContainsKey(args.After.Channel.Id)) return;
 
 				foreach (var client in voiceClients.Values)
 				{
-					if (client.GetVoiceNext().GetConnection(args.Guild) == null)
+					if (client.Guilds.ContainsKey(args.Guild.Id) && client.GetVoiceNext().GetConnection(args.Guild) == null)
 					{
-						connections.Add(args.After.Channel.Id, await client.GetVoiceNext().ConnectAsync(await args.After.Channel.AsClient(client)));
+						connections.Add(args.After.Channel.Id, new IrisAudioConnection(await args.After.Channel.AsClient(client).Result.ConnectAsync()));
 						return;
 					}
 				}
