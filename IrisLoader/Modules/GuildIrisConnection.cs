@@ -3,6 +3,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.SlashCommands;
 using Emzi0767.Utilities;
+using IrisLoader.Audio;
 using IrisLoader.Permissions;
 using System.Linq;
 using System.Threading.Tasks;
@@ -215,6 +216,14 @@ namespace IrisLoader.Modules
 		/// <summary> Resets all permissions for this guild </summary>
 		/// <param name="role"> Restrict to one role </param>
 		public void ResetPermissions(DiscordRole role = null) => PermissionManager.ResetPermissions((module as GuildIrisModule).Guild, role);
+		#endregion
+
+		#region Audio
+		public IrisAudioConnection GetAudioConnection(DiscordChannel channel)
+		{
+			if (channel.Guild != (module as GuildIrisModule).Guild) return null;
+			return AudioConnectionManager.GetConnection(channel);
+		}
 		#endregion
 
 		// Reminder inherited

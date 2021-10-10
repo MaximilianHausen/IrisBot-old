@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace IrisLoader.Audio
 {
-	public static class AudioConnectionManager
+	internal static class AudioConnectionManager
 	{
 		// userId, DiscordClient
 		private static readonly Dictionary<ulong, DiscordClient> voiceClients = new();
