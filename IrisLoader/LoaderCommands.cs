@@ -272,7 +272,7 @@ namespace IrisLoader
 								Color = 0xED4245,
 								Fields =
 								{
-									("Details", "Die Datei `" + fileInteraction.Result.Attachments[0].FileName + "` enthält kein gültiges Modul")
+									("Details", "Die Datei `" + fileInteraction.Result.Attachments[0].FileName + "` enthält kein gültiges Modul. Bei weiteren Fragen an Maxi#2608 wenden")
 								}
 							};
 						}

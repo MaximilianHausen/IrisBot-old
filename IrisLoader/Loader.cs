@@ -142,7 +142,13 @@ namespace IrisLoader
 				return Task.FromResult(false);
 			}
 			// Name is okay
-			if (AssemblyName.GetAssemblyName(path).Name == "Loader")
+			AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
+			if (assemblyName.Name.Length > 32)
+			{
+				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "ModuleName \"" + path + "\" cannot be longer than 32 characters");
+				return Task.FromResult(false);
+			}
+			if (assemblyName.Name == "Loader")
 			{
 				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "Module \"" + path + "\" cannot named \"Loader\"");
 				return Task.FromResult(false);
@@ -185,6 +191,11 @@ namespace IrisLoader
 		internal static Dictionary<string, IrisModuleReference<GlobalIrisModule>> GetGlobalModules() => globalModules;
 		internal static async Task<bool> LoadGlobalModuleAsync(string name)
 		{
+			if (name.Length > 32)
+			{
+				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because name \"{name}\" is longer than 32 characters");
+				return false;
+			}
 			if (globalModules.ContainsKey(name))
 			{
 				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is already loaded");

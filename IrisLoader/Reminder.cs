@@ -43,6 +43,8 @@ namespace IrisLoader
 		/// <summary> Sends a reminder to the module with a given delay and continues even after restarting the application. This should be used for something like "remove this role in 1 Week" </summary>
 		internal static void AddReminder(TimeSpan delay, string moduleName, string[] values)
 		{
+			if (JsonSerializer.Serialize(values).Length > 512) return;
+
 			DateTime time = DateTime.Now + delay;
 
 			// Add to file
