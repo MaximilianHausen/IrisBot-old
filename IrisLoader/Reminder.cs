@@ -1,4 +1,5 @@
 ﻿using IrisLoader.Modules;
+using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,32 +11,33 @@ namespace IrisLoader
 {
 	public static class Reminder
 	{
-		private class ReminderModel
-		{
-			public DateTime Time { get; set; }
-			public string ModuleName { get; set; }
-			public string[] Values { get; set; }
-
-			public override bool Equals(object obj)
-			{
-				if (obj is not ReminderModel model) return false;
-				return obj is ReminderModel r && Time == model.Time && ModuleName == model.ModuleName && Values.SequenceEqual(model.Values);
-			}
-		}
-
-		private static readonly string filePath = Directory.GetCurrentDirectory() + "/ModuleFiles/reminders.json";
+		private static readonly MySqlConnection con = new();
+		private static readonly MySqlCommand cmd = new();
 
 		static Reminder()
 		{
-			if (!File.Exists(filePath))
-				File.WriteAllText(filePath, JsonSerializer.Serialize(new List<ReminderModel>()));
+			string cs = "server=localhost;userid=root;password=" + Loader.config.MySqlPassword;
+
+			con.ConnectionString = cs;
+			cmd.Connection = con;
+			con.Open();
+
+			cmd.CommandText = "CREATE DATABASE IF NOT EXISTS irisloader";
+			cmd.ExecuteNonQuery();
+			cmd.CommandText = "USE irisloader";
+			cmd.ExecuteNonQuery();
+
+			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reminders(id INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT, time VARCHAR(19), module VARCHAR(32), valueList VARCHAR(512))";
+			cmd.ExecuteNonQuery();
 		}
 
 		internal static void LoadRemainingTasks()
 		{
-			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
+			cmd.CommandText = $"SELECT * FROM reminders";
+			using MySqlDataReader reader = cmd.ExecuteReader();
 
-			reminders.ForEach(r => _ = RunReminder(r));
+			while (reader.Read())
+				_ = RunReminder(DateTime.Parse(reader.GetString("time")), reader.GetString("module"), JsonSerializer.Deserialize<string[]>(reader.GetString("valueList")));
 		}
 
 		/// <summary> Sends a reminder to the module with a given delay and continues even after restarting the application. This should be used for something like "remove this role in 1 Week" </summary>
@@ -44,33 +46,32 @@ namespace IrisLoader
 			DateTime time = DateTime.Now + delay;
 
 			// Add to file
-			var reminder = new ReminderModel() { Time = time, ModuleName = moduleName, Values = values };
-			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
-			reminders.Add(reminder);
-			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
+			cmd.CommandText = $"INSERT INTO reminders (time, module, valueList) VALUES ('{time}', '{moduleName}', '{JsonSerializer.Serialize(values)}')";
+			cmd.ExecuteNonQuery();
 
-			_ = RunReminder(reminder);
+			_ = RunReminder(time, moduleName, values);
 		}
 
-		private static async Task RunReminder(ReminderModel reminder)
+		private static async Task RunReminder(DateTime time, string moduleName, string[] values)
 		{
-			if (DateTime.Now < reminder.Time)
-				await Task.Delay(reminder.Time - DateTime.Now);
+			if (DateTime.Now < time)
+				await Task.Delay(time - DateTime.Now);
 
-			var reminders = JsonSerializer.Deserialize<List<ReminderModel>>(File.ReadAllText(filePath));
-			reminders.RemoveAll(r => r.Equals(reminder));
-			File.WriteAllText(filePath, JsonSerializer.Serialize(reminders));
+			cmd.CommandText = $"DELETE FROM reminders WHERE time = '{time}' AND module = '{moduleName}' AND valueList = '{JsonSerializer.Serialize(values)}'";
+			cmd.ExecuteNonQuery();
 
-			if (reminder.ModuleName == "Loader")
-				_ = Loader.ReminderRecieved(reminder.Values);
+			if (moduleName == "Loader")
+			{
+				_ = Loader.ReminderRecieved(values);
+			}
 			else
 			{
-				BaseIrisModule module = Loader.GetModuleByName(reminder.ModuleName);
+				BaseIrisModule module = Loader.GetModuleByName(moduleName);
 
 				if (module is GlobalIrisModule globalModule)
-					_ = globalModule.Connection.InvokeEvent(reminder.Values);
+					_ = globalModule.Connection.InvokeEvent(values);
 				else
-					_ = (module as GuildIrisModule).Connection.InvokeEvent(reminder.Values);
+					_ = (module as GuildIrisModule).Connection.InvokeEvent(values);
 			}
 		}
 	}

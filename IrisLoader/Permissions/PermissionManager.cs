@@ -24,12 +24,9 @@ namespace IrisLoader.Permissions
 			cmd.Connection = con;
 			con.Open();
 
-			cmd.CommandText = "CREATE DATABASE IF NOT EXISTS iris_permissions";
+			cmd.CommandText = "CREATE DATABASE IF NOT EXISTS irisloader";
 			cmd.ExecuteNonQuery();
-			cmd.CommandText = "USE iris_permissions";
-			cmd.ExecuteNonQuery();
-
-			cmd.CommandText = "DROP TABLE IF EXISTS iris_permissions";
+			cmd.CommandText = "USE irisloader";
 			cmd.ExecuteNonQuery();
 
 			cmd.CommandText = @"CREATE TABLE IF NOT EXISTS role_perms(id INTEGER UNSIGNED PRIMARY KEY AUTO_INCREMENT, guild_id BIGINT UNSIGNED, role_id BIGINT UNSIGNED, permission VARCHAR(32))";

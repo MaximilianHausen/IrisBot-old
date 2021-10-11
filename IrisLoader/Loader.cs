@@ -29,7 +29,7 @@ namespace IrisLoader
 		internal static DiscordShardedClient Client { get; private set; }
 		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
 
-		public static readonly Config config;
+		internal static readonly Config config;
 		private static readonly Dictionary<string, IrisModuleReference<GlobalIrisModule>> globalModules = new();
 		private static readonly Dictionary<ulong, Dictionary<string, IrisModuleReference<GuildIrisModule>>> guildModules = new();
 
