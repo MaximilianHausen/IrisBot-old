@@ -194,7 +194,7 @@ namespace IrisLoader.Modules
 		public T GetSettings<T>() where T : new() => ModuleSettings.GetSettings<T>((module as GuildIrisModule).Guild, module);
 		public void SetSettings<T>(T settingsObject) => ModuleSettings.SetSettings((module as GuildIrisModule).Guild, module, settingsObject);
 
-		public void UpdateFromFile<T>() where T : new() => ModuleSettings.UpdateFromFile<T>((module as GuildIrisModule).Guild, module);
+		public void UpdateSettingsFromFile<T>() where T : new() => ModuleSettings.UpdateFromFile<T>((module as GuildIrisModule).Guild, module);
 		#endregion
 
 		#region Permissions

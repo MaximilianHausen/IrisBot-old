@@ -35,7 +35,7 @@ namespace AntiSpam
 
 		public override Task Ready()
 		{
-			Connection.UpdateFromFile<AntiSpamSettingsModel>();
+			Connection.UpdateSettignsFromFile<AntiSpamSettingsModel>();
 			return Task.CompletedTask;
 		}
 

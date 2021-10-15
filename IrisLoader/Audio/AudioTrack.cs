@@ -3,7 +3,7 @@ using System.IO;
 
 namespace IrisLoader.Audio
 {
-	public class AudioTrack
+	public class AudioTrack : IDisposable
 	{
 		public event Action PlaythoughFinished;
 
@@ -15,6 +15,11 @@ namespace IrisLoader.Audio
 		}
 
 		~AudioTrack()
+		{
+			Dispose();
+		}
+
+		public void Dispose()
 		{
 			stream.Dispose();
 		}

@@ -29,7 +29,7 @@ namespace AntiPing
 						Fields =
 					{
 						("Details", $"`Auto-React`: {settings.AutoReact}\n" +
-						$"`React-Emoji`: {(settings.ReactionEmoji == null ? "null" : (DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) ? settings.ReactionEmoji : await ctx.Guild.GetEmojiAsync(ulong.Parse(settings.ReactionEmoji))))}\n\n" +
+						$"`React-Emoji`: {settings.ReactionEmoji ?? "null"}\n\n" +
 						$"`Ping-Back`: {settings.PingBack}\n" +
 						$"`Ping-Time`: {settings.MinPingDelay}-{settings.MaxPingDelay} Minuten")
 					}
@@ -116,7 +116,7 @@ namespace AntiPing
 					if (emoji != null && DiscordEmoji.IsValidUnicode(emoji))
 					{
 						isEphemeral = false;
-						settings.ReactionEmoji = emoji;
+						settings.ReactionEmoji = DiscordEmoji.FromUnicode(emoji);
 						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
@@ -132,7 +132,7 @@ namespace AntiPing
 					else if (emoji != null && ctx.Guild.Emojis.Any(e => e.Value.Name == GetStringBetweenCharacters(emoji, ':', ':')))
 					{
 						isEphemeral = false;
-						settings.ReactionEmoji = ctx.Guild.Emojis.First(e => e.Value.Name == GetStringBetweenCharacters(emoji, ':', ':')).Key.ToString();
+						settings.ReactionEmoji = ctx.Guild.Emojis.First(e => e.Value.Name == GetStringBetweenCharacters(emoji, ':', ':')).Value;
 						AntiPingModule.Instance.Connection.SetSettings(ctx.Guild, settings);
 
 						embedBuilder = new ModernEmbedBuilder
@@ -165,7 +165,7 @@ namespace AntiPing
 							Color = 0x57F287,
 							Fields =
 							{
-								("Details", "`React-Emoji` ist momentan " + (DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) ? settings.ReactionEmoji : await ctx.Guild.GetEmojiAsync(ulong.Parse(settings.ReactionEmoji))))
+								("Details", "`React-Emoji` ist momentan " + settings.ReactionEmoji)
 							}
 						};
 					}

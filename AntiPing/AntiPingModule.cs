@@ -31,7 +31,7 @@ namespace AntiPing
 
 		public override Task Ready()
 		{
-			Connection.UpdateFromFile<AntiPingSettingsModel>();
+			Connection.UpdateSettignsFromFile<AntiPingSettingsModel>();
 			return Task.CompletedTask;
 		}
 
@@ -52,7 +52,7 @@ namespace AntiPing
 			{
 				if (settings.AutoReact && settings.ReactionEmoji != null)
 				{
-					await args.Message.CreateReactionAsync(DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) ? DiscordEmoji.FromUnicode(settings.ReactionEmoji) : await args.Guild.GetEmojiAsync(ulong.Parse(settings.ReactionEmoji)));
+					await args.Message.CreateReactionAsync(settings.ReactionEmoji);
 				}
 				if (settings.PingBack)
 				{
@@ -77,7 +77,7 @@ namespace AntiPing
 		public Task EmojisEdited(DiscordClient client, GuildEmojisUpdateEventArgs args)
 		{
 			var settings = Connection.GetSettings<AntiPingSettingsModel>(args.Guild);
-			if (!DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) && !args.EmojisAfter.ContainsKey(ulong.Parse(settings.ReactionEmoji)))
+			if (!DiscordEmoji.IsValidUnicode(settings.ReactionEmoji) && !args.EmojisAfter.ContainsKey(settings.ReactionEmoji.Id))
 			{
 				settings.AutoReact = false;
 				settings.ReactionEmoji = null;
@@ -85,6 +85,7 @@ namespace AntiPing
 			}
 			return Task.CompletedTask;
 		}
+
 		private bool HasReplyPing(DiscordMessage message)
 		{
 			if (message.ReferencedMessage == null) return false;

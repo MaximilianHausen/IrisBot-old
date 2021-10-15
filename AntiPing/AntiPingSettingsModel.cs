@@ -1,4 +1,8 @@
-﻿namespace AntiPing
+﻿using DSharpPlus.Entities;
+using IrisLoader.Settings;
+using System.Text.Json.Serialization;
+
+namespace AntiPing
 {
 	public class AntiPingSettingsModel
 	{
@@ -6,7 +10,8 @@
 
 		// Automatic reaction
 		public bool AutoReact { get; set; } = false;
-		public string ReactionEmoji { get; set; } = null;
+		[JsonConverter(typeof(EmojiJsonConverter))]
+		public DiscordEmoji ReactionEmoji { get; set; } = null;
 
 		// PingBack
 		public bool PingBack { get; set; } = false;

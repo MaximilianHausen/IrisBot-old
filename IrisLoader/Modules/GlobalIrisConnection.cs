@@ -36,7 +36,7 @@ namespace IrisLoader.Modules
 		public T GetSettings<T>(DiscordGuild guild) where T : new() => ModuleSettings.GetSettings<T>(guild, module);
 		public void SetSettings<T>(DiscordGuild guild, T settingsObject) => ModuleSettings.SetSettings(guild, module, settingsObject);
 
-		public void UpdateFromFile<T>() where T : new() => Loader.Client.GetGuilds().ForEach(g => ModuleSettings.UpdateFromFile<T>(g.Value, module));
+		public void UpdateSettignsFromFile<T>() where T : new() => Loader.Client.GetGuilds().ForEach(g => ModuleSettings.UpdateFromFile<T>(g.Value, module));
 		#endregion
 
 		#region Permissions
