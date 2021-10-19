@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiSpam", "AntiSpam\AntiSp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiPing", "AntiPing\AntiPing.csproj", "{F719E21E-2F2B-45BD-B2AF-661A52179775}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{96B8EC90-06AB-47DF-9A1B-723B09A2C113}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{049DFF83-DAB5-4A62-B114-99DE440A005C} = {96B8EC90-06AB-47DF-9A1B-723B09A2C113}
+		{F719E21E-2F2B-45BD-B2AF-661A52179775} = {96B8EC90-06AB-47DF-9A1B-723B09A2C113}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F383B3FA-5558-41C5-A206-1A8AC90820D7}
