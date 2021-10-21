@@ -6,16 +6,16 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <PlatformTarget>ARM64</PlatformTarget>
-    <NoWarn>1701;1702;CA1822</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <NoWarn>1701;1702</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.3.3" />
-    <PackageReference Include="DSharpPlus" Version="4.2.0-nightly-01030" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.2.0-nightly-01030" />
-    <PackageReference Include="DSharpPlus.SlashCommands" Version="4.2.0-nightly-01030" />
-    <PackageReference Include="DSharpPlus.VoiceNext" Version="4.2.0-nightly-01030" />
+    <PackageReference Include="DSharpPlus" Version="4.2.0-nightly-01031" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="4.2.0-nightly-01031" />
+    <PackageReference Include="DSharpPlus.SlashCommands" Version="4.2.0-nightly-01031" />
+    <PackageReference Include="DSharpPlus.VoiceNext" Version="4.2.0-nightly-01031" />
     <PackageReference Include="HSNXT.DSharpPlus.ModernEmbedBuilder" Version="5.0.0-pre.210" />
     <PackageReference Include="morelinq" Version="3.3.2" />
     <PackageReference Include="MySql.Data" Version="8.0.27" />

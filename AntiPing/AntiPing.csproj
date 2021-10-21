@@ -5,12 +5,16 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <PlatformTarget>ARM64</PlatformTarget>
-    <NoWarn>1701;1702;CA1822</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <NoWarn>1701;1702</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\IrisLoader\IrisLoader.csproj" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if EXIST &quot;$(SolutionDir)IrisLoader\$(OutDir)&quot; (&#xD;&#xA;    md &quot;$(SolutionDir)IrisLoader\$(OutDir)\Modules\Global\&quot;&#xD;&#xA;    copy &quot;$(TargetPath)&quot; &quot;$(SolutionDir)IrisLoader\$(OutDir)\Modules\Global\&quot;&#xD;&#xA;)" />
+  </Target>
 
 </Project>
