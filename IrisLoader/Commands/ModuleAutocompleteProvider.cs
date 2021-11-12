@@ -1,6 +1,5 @@
 ﻿using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using MoreLinq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,13 +13,13 @@ namespace IrisLoader.Commands
 		{
 			if (!ctx.Interaction.GuildId.HasValue)
 			{
-				List<string> globalModules = Loader.GetGlobalModules().Where(m => m.Key.ToLower().Contains((ctx.OptionValue as string).ToLower())).Select(m => m.Key).ToList();
+				List<string> globalModules = Loader.GetGlobalModules().Select(m => m.Key).Where(m => m.Contains(ctx.OptionValue as string, StringComparison.OrdinalIgnoreCase)).ToList();
 				if (!globalModules.Any()) return Task.FromResult(Array.Empty<DiscordAutoCompleteChoice>() as IEnumerable<DiscordAutoCompleteChoice>);
 				return Task.FromResult(new List<DiscordAutoCompleteChoice>(globalModules.Select(m => new DiscordAutoCompleteChoice(m, m))) as IEnumerable<DiscordAutoCompleteChoice>);
 			}
 
-			List<string> modules = Loader.GetGlobalModules().Where(m => m.Key.ToLower().Contains((ctx.OptionValue as string).ToLower())).Select(m => m.Key).ToList();
-			Loader.GetGuildModules(ctx.Interaction.Guild).Where(m => m.Key.ToLower().Contains((ctx.OptionValue as string).ToLower())).ForEach(m => modules.Add(m.Key));
+			List<string> modules = Loader.GetGlobalModules().Select(m => m.Key).Where(m => m.Contains(ctx.OptionValue as string, StringComparison.OrdinalIgnoreCase)).ToList();
+			modules.AddRange(Loader.GetGuildModules(ctx.Interaction.Guild).Select(m => m.Key.ToLower()).Where(m => m.Contains(ctx.OptionValue as string)));
 			if (!modules.Any()) return Task.FromResult(Array.Empty<DiscordAutoCompleteChoice>() as IEnumerable<DiscordAutoCompleteChoice>);
 
 			return Task.FromResult(new List<DiscordAutoCompleteChoice>(modules.Select(m => new DiscordAutoCompleteChoice(m, m))) as IEnumerable<DiscordAutoCompleteChoice>);

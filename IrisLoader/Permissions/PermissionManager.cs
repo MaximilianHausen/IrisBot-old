@@ -1,4 +1,5 @@
-﻿using DSharpPlus.Entities;
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using IrisLoader.Commands;
 using MoreLinq;
@@ -44,7 +45,9 @@ namespace IrisLoader.Permissions
 			else
 				permissions.Add(permission);
 		}
-		internal static void RegisterPermissions<T>(DiscordGuild guild) where T : ApplicationCommandModule => GetPermissionAttributes(typeof(T)).Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guild?.Id)));
+		internal static void RegisterPermissions<T>(DiscordGuild guild = null) where T : ApplicationCommandModule => GetPermissionAttributes(typeof(T)).Select(a => a.Permission).Distinct().ForEach(p => RegisterPermission(new IrisPermission(p, guild?.Id)));
+		internal static void UnregisterPermissions(IrisPermission permission) => permissions.Remove(permission);
+		internal static void UnregisterPermissions<T>(DiscordGuild guild = null) where T : ApplicationCommandModule => GetPermissionAttributes(typeof(T)).Select(a => new IrisPermission(a.Permission, guild?.Id)).ForEach(p => permissions.Remove(p));
 		private static List<IRequireIrisPermissionAttribute> GetPermissionAttributes(Type type)
 		{
 			var attributes = new List<IRequireIrisPermissionAttribute>();
@@ -60,7 +63,7 @@ namespace IrisLoader.Permissions
 			using MySqlDataReader reader = cmd.ExecuteReader();
 			return reader.HasRows;
 		}
-		internal static bool HasPermission(DiscordMember member, string permission) => member.Roles.Any(r => HasPermission(member.Guild, r, permission));
+		internal static bool HasPermission(DiscordMember member, string permission) => member.Permissions.HasPermission(DSharpPlus.Permissions.Administrator) || member.Roles.Any(r => HasPermission(member.Guild, r, permission));
 
 		internal static void SetPermission(DiscordGuild guild, DiscordRole role, string permission, bool value)
 		{

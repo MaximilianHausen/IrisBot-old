@@ -13,16 +13,18 @@ namespace IrisLoader.Modules
 		internal GlobalIrisConnection(GlobalIrisModule module) : base(module) { }
 
 		#region Client
-		// No abstraction needed here, global modules can only be uploaded by the developers
-		public DiscordShardedClient Client
-		{
-			get { return Loader.Client; }
-		}
+		public DiscordShardedClient Client { get => Loader.Client; }
 
 		public void RegisterCommands<T>() where T : ApplicationCommandModule
 		{
 			Loader.SlashExt.RegisterCommands<T>();
 			PermissionManager.RegisterPermissions<T>(null);
+			if (Loader.IsConnected) Loader.SlashExt[0].RefreshCommands();
+		}
+		public void UnregisterCommands<T>() where T : ApplicationCommandModule
+		{
+			Loader.SlashExt.UnregisterCommands<T>();
+			PermissionManager.UnregisterPermissions<T>(null);
 			if (Loader.IsConnected) Loader.SlashExt[0].RefreshCommands();
 		}
 		#endregion

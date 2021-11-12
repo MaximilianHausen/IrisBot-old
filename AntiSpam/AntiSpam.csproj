@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if EXIST &quot;$(SolutionDir)IrisLoader\$(OutDir)&quot; (&#xD;&#xA;    md &quot;$(SolutionDir)IrisLoader\$(OutDir)\Modules\Global\&quot;&#xD;&#xA;    copy &quot;$(TargetPath)&quot; &quot;$(SolutionDir)IrisLoader\$(OutDir)\Modules\Global\&quot;&#xD;&#xA;)" />
+    <Exec Command="if EXIST &quot;$(SolutionDir)IrisLoader\$(OutDir)&quot; (&#xD;&#xA;    md &quot;$(SolutionDir)IrisLoader\$(OutDir)Modules\Global\&quot;&#xD;&#xA;    copy &quot;$(TargetPath)&quot; &quot;$(SolutionDir)IrisLoader\$(OutDir)\Modules\Global\&quot;&#xD;&#xA;)" />
   </Target>
 
 </Project>

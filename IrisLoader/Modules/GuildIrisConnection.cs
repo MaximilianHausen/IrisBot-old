@@ -105,6 +105,12 @@ namespace IrisLoader.Modules
 			PermissionManager.RegisterPermissions<T>((module as GuildIrisModule).Guild);
 			if (Loader.IsConnected) Loader.SlashExt[0].RefreshCommands();
 		}
+		public void UnregisterCommands<T>() where T : ApplicationCommandModule
+		{
+			Loader.SlashExt.UnregisterCommands<T>((module as GuildIrisModule).Guild.Id);
+			PermissionManager.UnregisterPermissions<T>((module as GuildIrisModule).Guild);
+			if (Loader.IsConnected) Loader.SlashExt[0].RefreshCommands();
+		}
 
 		// Yes, I did this manually...
 		private Task ChannelCreatedHandler(DiscordClient client, ChannelCreateEventArgs e) => e.Guild.Id == (module as GuildIrisModule).Guild.Id ? ChannelCreated.Invoke(module as GuildIrisModule, e) : Task.CompletedTask;

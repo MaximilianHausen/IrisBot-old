@@ -1,6 +1,5 @@
 {
   "Token": "token", // Token of the main text-bot
   "MySqlPassword": "password",
-  "AssemblyBlacklist": [ "AssemblyName1", "AssemblyName2" ], // Names of assemblys not usable by modules
   "AudioTokens": [ "AudioToken1", "AudioToken2" ] // List of the tokens for all audio-accounts
 }

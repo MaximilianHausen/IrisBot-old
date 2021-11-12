@@ -30,6 +30,7 @@ namespace AntiSpam
 			Connection.Client.MessageCreated -= MessageCreated;
 			Connection.Client.GuildRoleDeleted -= RoleDeleted;
 			Connection.ReminderRecieved -= ProcessReminder;
+			Connection.UnregisterCommands<AntiSpamCommands>();
 			return Task.CompletedTask;
 		}
 

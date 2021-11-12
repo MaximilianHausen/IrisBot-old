@@ -14,7 +14,7 @@ namespace IrisLoader.Audio
 
 		// Queued tracks
 		private readonly Dictionary<DateTime, AudioTrack> singleTracks = new();
-		private readonly List<AudioTrack> generalQueue = new();
+		private readonly Queue<AudioTrack> generalQueue = new();
 
 		private Timer packageTimer;
 
@@ -38,7 +38,7 @@ namespace IrisLoader.Audio
 		/// <summary> Adds a track to the end of the queue </summary>
 		public void QueueTrack(AudioTrack track)
 		{
-			generalQueue.Add(track);
+			generalQueue.Enqueue(track);
 			track.PlaythoughFinished += NextTrack;
 		}
 		/// <summary> Queues a track to be played at a specific time </summary>
@@ -48,11 +48,7 @@ namespace IrisLoader.Audio
 			track.PlaythoughFinished += () => singleTracks.Remove(time);
 		}
 
-		public void NextTrack()
-		{
-			generalQueue[0].PlaythoughFinished -= NextTrack;
-			generalQueue.RemoveAt(0);
-		}
+		public void NextTrack() => generalQueue.Dequeue().PlaythoughFinished -= NextTrack;
 
 		internal IEnumerable<AudioTrack> GetPlayingTracks()
 		{

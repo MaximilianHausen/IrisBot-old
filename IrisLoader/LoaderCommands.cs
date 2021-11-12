@@ -33,8 +33,8 @@ namespace IrisLoader
 					ModernEmbedBuilder embedBuilder;
 					// name, active, true:global/false:guild
 					var moduleList = new List<(string, bool, bool)>();
-					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(ctx.Guild), true)));
-					Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, m.Value.module.IsActive(), false)));
+					Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.IsActive(ctx.Guild), true)));
+					Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, m.Value.IsActive(), false)));
 
 					if (moduleList.Count > 0)
 					{
@@ -77,8 +77,8 @@ namespace IrisLoader
 				{
 					ModernEmbedBuilder embedBuilder;
 					bool prevState;
-					GlobalIrisModule globalModule = Loader.GetGlobalModules().Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
-					GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == moduleName).SingleOrDefault().Value.module;
+					GlobalIrisModule globalModule = Loader.GetGlobalModules().Where(m => m.Key == moduleName).SingleOrDefault().Value;
+					GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == moduleName).SingleOrDefault().Value;
 
 					if (globalModule != null)
 					{
@@ -199,54 +199,38 @@ namespace IrisLoader
 
 						if (isValid)
 						{
-							string[] restrictedDependencies = Loader.CheckDependencies(cachePath);
-							if (!restrictedDependencies.Any() || (restrictedDependencies.SingleOrDefault() == (loadAsGlobal ? "IrisLoader.Modules.Global" : "IrisLoader.Modules.Guild")))
+							// Move Module
+							string filePath = $"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}/" + fileInteraction.Result.Attachments[0].FileName;
+							Directory.CreateDirectory($"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}");
+							bool needsOverwrite = File.Exists(filePath);
+							if (needsOverwrite)
+								await Loader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
+							File.Move(cachePath, filePath, true);
+
+							// Load Module
+							string moduleName = AssemblyName.GetAssemblyName(filePath).Name;
+							bool success;
+							if (loadAsGlobal)
 							{
-								// Move Module
-								string filePath = $"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}/" + fileInteraction.Result.Attachments[0].FileName;
-								Directory.CreateDirectory($"./Modules/{(loadAsGlobal ? "Global" : (ctx.Guild.Name + '~' + ctx.Guild.Id))}");
-								bool needsOverwrite = File.Exists(filePath);
-								if (needsOverwrite)
-									await Loader.UnloadGlobalModuleAsync(AssemblyName.GetAssemblyName(filePath).Name);
-								File.Move(cachePath, filePath, true);
-
-								// Load Module
-								string moduleName = AssemblyName.GetAssemblyName(filePath).Name;
-								bool success;
-								if (loadAsGlobal)
-								{
-									success = await Loader.LoadGlobalModuleAsync(moduleName);
-								}
-								else
-								{
+								success = await Loader.LoadGlobalModuleAsync(moduleName);
+							}
+							else
+							{
 #warning Load as guild
-									success = false;
-								}
+								success = false;
+							}
 
-								if (success)
+							if (success)
+							{
+								responseBuilder = new ModernEmbedBuilder
 								{
-									responseBuilder = new ModernEmbedBuilder
+									Title = "Modul geladen",
+									Color = 0x57F287,
+									Fields =
 									{
-										Title = "Modul geladen",
-										Color = 0x57F287,
-										Fields =
-										{
-											("Details", $"\"{moduleName}\" erfolgreich empfangen und als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen")
-										}
-									};
-								}
-								else
-								{
-									responseBuilder = new ModernEmbedBuilder
-									{
-										Title = "Fehler",
-										Color = 0xED4245,
-										Fields =
-										{
-											("Details", $"\"{moduleName}\" konnte nicht als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen werden")
-										}
-									};
-								}
+										("Details", $"\"{moduleName}\" erfolgreich empfangen und als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen")
+									}
+								};
 							}
 							else
 							{
@@ -256,8 +240,7 @@ namespace IrisLoader
 									Color = 0xED4245,
 									Fields =
 									{
-										("Details", "Das Modul verwendet unerlaubte Libraries oder Namespaces:\n" +
-										string.Join('\n', "- " + restrictedDependencies))
+										("Details", $"\"{moduleName}\" konnte nicht als {(loadAsGlobal ? "globales" : "lokales")} Modul geladen werden")
 									}
 								};
 							}
@@ -296,27 +279,41 @@ namespace IrisLoader
 				public async Task DeleteCommand(InteractionContext ctx, [Autocomplete(typeof(ModuleAutocompleteProvider))][Option("name", "Name des zu löschenden Moduls", true)] string name)
 				{
 					bool usedByOwner = ctx.Client.CurrentApplication.Owners.Any(x => x.Id == ctx.User.Id);
-					IrisModuleReference<GlobalIrisModule> globalModule = Loader.GetGlobalModules().Where(m => m.Key == name).FirstOrDefault().Value;
-					IrisModuleReference<GuildIrisModule> guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == name).FirstOrDefault().Value;
+					GlobalIrisModule globalModule = Loader.GetGlobalModules().FirstOrDefault(m => m.Key == name).Value;
+					GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).FirstOrDefault(m => m.Key == name).Value;
 
-					if (globalModule.module != null)
+					if (globalModule != null)
 					{
 						if (usedByOwner)
 						{
-							await Loader.UnloadGlobalModuleAsync(name);
-							File.Delete(globalModule.file.FullName);
-							Loader.Client.GetGuilds().ForEach(g => Directory.Delete(ModuleIO.GetModuleFileDirectory(g.Value, name).FullName));
-							var embedBuilder = new ModernEmbedBuilder
+							if (await Loader.UnloadGlobalModuleAsync(name))
 							{
-								Title = "Modul gelöscht",
-								Color = 0x57F287,
-								Fields =
+								File.Delete(globalModule.GetAssemblyPath());
+								// Loader.Client.GetGuilds().ForEach(g => Directory.Delete(ModuleIO.GetModuleFileDirectory(g.Value, name).FullName));
+								var embedBuilder = new ModernEmbedBuilder
 								{
-									("Details", $"Das globale Modul `{name}` wurde erfolgreich entladen und gelöscht")
-								}
-							};
-							await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder.Build()));
-							return;
+									Title = "Modul gelöscht",
+									Color = 0x57F287,
+									Fields =
+									{
+										("Details", $"Das globale Modul `{name}` wurde erfolgreich entladen und gelöscht")
+									}
+								};
+								await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder.Build()));
+							}
+							else
+							{
+								var embedBuilder = new ModernEmbedBuilder
+								{
+									Title = "Fehler",
+									Color = 0xED4245,
+									Fields =
+									{
+										("Details", $"Das globale Modul `{name}` konnte nicht entladen werden")
+									}
+								};
+								await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
+							}
 						}
 						else
 						{
@@ -330,7 +327,6 @@ namespace IrisLoader
 								}
 							};
 							await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
-							return;
 						}
 					}
 					else
@@ -348,22 +344,36 @@ namespace IrisLoader
 						await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(tempEmbedBuilder.Build()));
 						return;
 						#endregion
-						if (!PermissionManager.HasPermission(ctx.Member, "ManageModules") && !ctx.Member.Permissions.HasPermission(DSharpPlus.Permissions.Administrator))
+						if (PermissionManager.HasPermission(ctx.Member, "ManageModules"))
 						{
 #warning Unload guild before delete
-							Directory.Delete(name);
-							File.Delete(guildModule.file.FullName);
-							var embedBuilder = new ModernEmbedBuilder
+							if (false)
 							{
-								Title = "Modul gelöscht",
-								Color = 0x57F287,
-								Fields =
+								File.Delete(guildModule.GetAssemblyPath());
+								var embedBuilder = new ModernEmbedBuilder
 								{
-									("Details", $"Das lokale Modul `{name}` wurde erfolgreich entladen und gelöscht")
-								}
-							};
-							await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder.Build()));
-							return;
+									Title = "Modul gelöscht",
+									Color = 0x57F287,
+									Fields =
+									{
+										("Details", $"Das lokale Modul `{name}` wurde erfolgreich entladen und gelöscht")
+									}
+								};
+								await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder.Build()));
+							}
+							else
+							{
+								var embedBuilder = new ModernEmbedBuilder
+								{
+									Title = "Fehler",
+									Color = 0xED4245,
+									Fields =
+									{
+										("Details", $"Das lokale Modul `{name}` konnte nicht entladen werden")
+									}
+								};
+								await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
+							}
 						}
 						else
 						{
@@ -377,7 +387,6 @@ namespace IrisLoader
 								}
 							};
 							await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
-							return;
 						}
 					}
 				}

@@ -25,7 +25,9 @@ namespace AntiPing
 		public override Task Unload()
 		{
 			Connection.Client.MessageCreated -= MessageCreated;
+			Connection.Client.GuildEmojisUpdated -= EmojisEdited;
 			Connection.ReminderRecieved -= ProcessReminder;
+			Connection.UnregisterCommands<AntiPingCommands>();
 			return Task.CompletedTask;
 		}
 
