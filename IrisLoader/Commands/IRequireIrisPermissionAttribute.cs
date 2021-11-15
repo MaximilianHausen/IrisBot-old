@@ -1,8 +1,7 @@
-﻿namespace IrisLoader.Commands
+﻿namespace IrisLoader.Commands;
+
+internal interface IRequireIrisPermissionAttribute
 {
-	internal interface IRequireIrisPermissionAttribute
-	{
-		public abstract string Permission { get; }
-		public abstract bool RequireGuild { get; }
-	}
+    public abstract string Permission { get; }
+    public abstract bool RequireGuild { get; }
 }

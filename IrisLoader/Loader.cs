@@ -15,256 +15,270 @@ using System.Runtime.Loader;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace IrisLoader
+namespace IrisLoader;
+
+internal static class Loader
 {
-	internal static class Loader
-	{
-		static Loader()
-		{
-			string configString = File.ReadAllText("./config.json");
-			config = JsonSerializer.Deserialize<Config>(configString);
-		}
+    static Loader()
+    {
+        string configString = File.ReadAllText("./config.json");
+        config = JsonSerializer.Deserialize<Config>(configString);
+    }
 
-		internal static bool IsConnected { get; private set; }
-		internal static DiscordShardedClient Client { get; private set; }
-		internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
+    internal static bool IsConnected { get; private set; }
+    internal static DiscordShardedClient Client { get; private set; }
+    internal static IReadOnlyDictionary<int, SlashCommandsExtension> SlashExt { get; private set; }
 
-		internal static readonly Config config;
-		private static readonly Dictionary<string, GlobalIrisModule> globalModules = new();
-		private static readonly Dictionary<ulong, Dictionary<string, GuildIrisModule>> guildModules = new();
+    internal static readonly Config config;
+    private static readonly Dictionary<string, GlobalIrisModule> globalModules = new();
+    private static readonly Dictionary<ulong, Dictionary<string, GuildIrisModule>> guildModules = new();
 
-		internal static void Main() => MainAsync().GetAwaiter().GetResult();
+    internal static void Main()
+    {
+        MainAsync().GetAwaiter().GetResult();
+    }
 
-		internal static async Task MainAsync()
-		{
-			// Create client
-			Client = new DiscordShardedClient(new DiscordConfiguration
-			{
-				Token = config.Token,
-				TokenType = TokenType.Bot,
-				Intents = DiscordIntents.AllUnprivileged,
-				LogTimestampFormat = "d/M/yyyy hh:mm:ss",
-				MinimumLogLevel = LogLevel.Information
-			});
+    internal static async Task MainAsync()
+    {
+        // Create client
+        Client = new DiscordShardedClient(new DiscordConfiguration
+        {
+            Token = config.Token,
+            TokenType = TokenType.Bot,
+            Intents = DiscordIntents.AllUnprivileged,
+            LogTimestampFormat = "d/M/yyyy hh:mm:ss",
+            MinimumLogLevel = LogLevel.Information
+        });
 
-			await Client.UseInteractivityAsync();
+        await Client.UseInteractivityAsync();
 
-			SlashExt = await Client.UseSlashCommandsAsync();
-			SlashExt.RegisterCommands<LoaderCommands>();
-			PermissionManager.RegisterPermissions<LoaderCommands>(null);
+        SlashExt = await Client.UseSlashCommandsAsync();
+        SlashExt.RegisterCommands<LoaderCommands>();
+        PermissionManager.RegisterPermissions<LoaderCommands>(null);
 
-			Directory.CreateDirectory(Directory.GetCurrentDirectory() + "/ModuleFiles");
+        Directory.CreateDirectory(Directory.GetCurrentDirectory() + "/ModuleFiles");
 
-			await LoadAllGlobalModulesAsync();
+        await LoadAllGlobalModulesAsync();
 
-			// Register startup events
-			Client.GuildDownloadCompleted += Ready;
-			Client.GuildDeleted += GuildDeleted;
+        // Register startup events
+        Client.GuildDownloadCompleted += Ready;
+        Client.GuildDeleted += GuildDeleted;
 
-			await Audio.AudioConnectionManager.Connect(config.AudioTokens);
+        await Audio.AudioConnectionManager.Connect(config.AudioTokens);
 
-			await Client.StartAsync();
-			IsConnected = true;
+        await Client.StartAsync();
+        IsConnected = true;
 
-			await Task.Run(() => Console.ReadKey());
+        await Task.Run(() => Console.ReadKey());
 
-			Console.WriteLine();
-			Console.WriteLine("Audio: ");
-			await Audio.AudioConnectionManager.Disconnect();
-			Console.WriteLine("Shards: ");
-			await Client.StopAsync();
-		}
+        Console.WriteLine();
+        Console.WriteLine("Audio: ");
+        await Audio.AudioConnectionManager.Disconnect();
+        Console.WriteLine("Shards: ");
+        await Client.StopAsync();
+    }
 
-		private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
-		{
-			// List available guilds
-			string guildList = "Iris is on the following Servers: ";
-			foreach (var guild in client.Guilds.Values) { guildList += guild.Name + '@' + guild.Id + ", "; }
-			guildList = guildList.Remove(guildList.Length - 2, 2);
-			Logger.Log(LogLevel.Information, 0, "Startup", guildList);
+    private static Task Ready(DiscordClient client, DSharpPlus.EventArgs.GuildDownloadCompletedEventArgs args)
+    {
+        // List available guilds
+        string guildList = "Iris is on the following Servers: ";
+        foreach (DiscordGuild guild in client.Guilds.Values) { guildList += guild.Name + '@' + guild.Id + ", "; }
+        guildList = guildList.Remove(guildList.Length - 2, 2);
+        Logger.Log(LogLevel.Information, 0, "Startup", guildList);
 
-			// Call Module-Ready
-			globalModules.ForEach(m => m.Value.Ready());
-			guildModules.ForEach(g => g.Value.ForEach(m => m.Value.Ready()));
+        // Call Module-Ready
+        globalModules.ForEach(m => m.Value.Ready());
+        guildModules.ForEach(g => g.Value.ForEach(m => m.Value.Ready()));
 
-			Reminder.LoadRemainingTasks();
+        Reminder.LoadRemainingTasks();
 
-			return Task.CompletedTask;
-		}
+        return Task.CompletedTask;
+    }
 
-		public static Task GuildDeleted(DiscordClient client, DSharpPlus.EventArgs.GuildDeleteEventArgs args)
-		{
-			Reminder.AddReminder(TimeSpan.FromDays(7), "Loader", new string[] { args.Guild.Id.ToString() });
-			return Task.CompletedTask;
-		}
-		internal static Task ReminderRecieved(string[] values)
-		{
-			var parsedId = ulong.Parse(values[0]);
-			var guilds = Client.GetGuilds();
-			if (!guilds.ContainsKey(parsedId))
-				Directory.Delete(ModuleIO.GetGuildFileDirectory(guilds[parsedId]).FullName, true);
-			return Task.CompletedTask;
-		}
+    public static Task GuildDeleted(DiscordClient client, DSharpPlus.EventArgs.GuildDeleteEventArgs args)
+    {
+        Reminder.AddReminder(TimeSpan.FromDays(7), "Loader", new string[] { args.Guild.Id.ToString() });
+        return Task.CompletedTask;
+    }
+    internal static Task ReminderRecieved(string[] values)
+    {
+        ulong parsedId = ulong.Parse(values[0]);
+        Dictionary<ulong, DiscordGuild> guilds = Client.GetGuilds();
+        if (!guilds.ContainsKey(parsedId))
+            Directory.Delete(ModuleIO.GetGuildFileDirectory(guilds[parsedId]).FullName, true);
+        return Task.CompletedTask;
+    }
 
-		internal static Task<bool> IsValidModule(string path, bool isGlobal)
-		{
-			// To absolute path
-			if (path.StartsWith('.'))
-				path = Path.GetFullPath(path);
+    internal static Task<bool> IsValidModule(string path, bool isGlobal)
+    {
+        // To absolute path
+        if (path.StartsWith('.'))
+            path = Path.GetFullPath(path);
 
-			// Is dll
-			if (!path.EndsWith(".dll") || !File.Exists(path))
-			{
-				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" is not a dll");
-				return Task.FromResult(false);
-			}
-			// Name is okay
-			AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
-			if (assemblyName.Name.Length > 32)
-			{
-				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "ModuleName \"" + path + "\" cannot be longer than 32 characters");
-				return Task.FromResult(false);
-			}
-			if (assemblyName.Name == "Loader")
-			{
-				Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "Module \"" + path + "\" cannot named \"Loader\"");
-				return Task.FromResult(false);
-			}
+        // Is dll
+        if (!path.EndsWith(".dll") || !File.Exists(path))
+        {
+            Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" is not a dll");
+            return Task.FromResult(false);
+        }
+        // Name is okay
+        AssemblyName assemblyName = AssemblyName.GetAssemblyName(path);
+        if (assemblyName.Name.Length > 32)
+        {
+            Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "ModuleName \"" + path + "\" cannot be longer than 32 characters");
+            return Task.FromResult(false);
+        }
+        if (assemblyName.Name == "Loader")
+        {
+            Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "Module \"" + path + "\" cannot named \"Loader\"");
+            return Task.FromResult(false);
+        }
 
-			// Load Assembly
-			WeakReference validationContext = new(new AssemblyLoadContext("ModuleValidation", true));
-			WeakReference moduleAssembly;
-			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read))
-			{
-				moduleAssembly = new WeakReference((validationContext.Target as AssemblyLoadContext).LoadFromStream(fs));
-			}
+        // Load Assembly
+        WeakReference validationContext = new(new AssemblyLoadContext("ModuleValidation", true));
+        WeakReference moduleAssembly;
+        using (FileStream fs = new(path, FileMode.Open, FileAccess.Read))
+        {
+            moduleAssembly = new WeakReference((validationContext.Target as AssemblyLoadContext).LoadFromStream(fs));
+        }
 
-			bool isValid = false;
+        bool isValid = isGlobal
+            ? (moduleAssembly.Target as Assembly).ExportedTypes.Any(t => typeof(GlobalIrisModule).IsAssignableFrom(t))
+            : (moduleAssembly.Target as Assembly).ExportedTypes.Any(t => typeof(GuildIrisModule).IsAssignableFrom(t));
 
-			// Check and unload
-			if (isGlobal)
-			{
-				isValid = (moduleAssembly.Target as Assembly).ExportedTypes.Any(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
-			}
-			else
-			{
-				isValid = (moduleAssembly.Target as Assembly).ExportedTypes.Any(t => typeof(GuildIrisModule).IsAssignableFrom(t));
-			}
-			(validationContext.Target as AssemblyLoadContext).Unload();
+        // Check and unload
+        (validationContext.Target as AssemblyLoadContext).Unload();
 
-			for (int i = 0; i < 10 && moduleAssembly.IsAlive; i++)
-				GC.Collect();
+        for (int i = 0; i < 10 && moduleAssembly.IsAlive; i++)
+            GC.Collect();
 
-			Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" " + (isValid ? "contains " : "does not contain ") + "a valid module");
+        Logger.Log(LogLevel.Debug, 0, "ModuleValidator", "File \"" + path + "\" " + (isValid ? "contains " : "does not contain ") + "a valid module");
 
-			return Task.FromResult(isValid);
-		}
-		internal static BaseIrisModule GetModuleByType(Type type) => globalModules.Select(m => m.Value).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
-		internal static BaseIrisModule GetModuleByName(string name) => globalModules.Select(m => m.Value).FirstOrDefault(m => m.Name == name) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.Name == name) as BaseIrisModule;
+        return Task.FromResult(isValid);
+    }
+    internal static BaseIrisModule GetModuleByType(Type type)
+    {
+        return globalModules.Select(m => m.Value).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
+    }
 
-		#region Global Modules
-		private static DirectoryInfo GetGlobalModuleDirectory()
-		{
-			Directory.CreateDirectory("./Modules/Global");
-			return new DirectoryInfo("./Modules/Global");
-		}
-		internal static Dictionary<string, GlobalIrisModule> GetGlobalModules() => globalModules;
-		internal static async Task<bool> LoadGlobalModuleAsync(string name)
-		{
-			if (name.Length > 32)
-			{
-				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because name \"{name}\" is longer than 32 characters");
-				return false;
-			}
-			if (globalModules.ContainsKey(name))
-			{
-				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is already loaded");
-				return false;
-			}
+    internal static BaseIrisModule GetModuleByName(string name)
+    {
+        return globalModules.Select(m => m.Value).FirstOrDefault(m => m.Name == name) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.Name == name) as BaseIrisModule;
+    }
 
-			FileInfo file = GetGlobalModuleDirectory().GetFiles().FirstOrDefault(f => f.Extension == ".dll" && AssemblyName.GetAssemblyName(f.FullName).Name == name);
-			if (file == null)
-			{
-				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it does not exist");
-				return false;
-			}
-			if (!await IsValidModule(file.FullName, true))
-			{
-				Logger.Log(LogLevel.Error, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is not a valid module");
-				return false;
-			}
+    #region Global Modules
+    private static DirectoryInfo GetGlobalModuleDirectory()
+    {
+        Directory.CreateDirectory("./Modules/Global");
+        return new DirectoryInfo("./Modules/Global");
+    }
+    internal static Dictionary<string, GlobalIrisModule> GetGlobalModules()
+    {
+        return globalModules;
+    }
 
-			// Load Assembly
-			Assembly assembly;
-			using (var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read))
-			{
-				assembly = new AssemblyLoadContext(name, true).LoadFromStream(fs);
-			}
+    internal static async Task<bool> LoadGlobalModuleAsync(string name)
+    {
+        if (name.Length > 32)
+        {
+            Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because name \"{name}\" is longer than 32 characters");
+            return false;
+        }
+        if (globalModules.ContainsKey(name))
+        {
+            Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is already loaded");
+            return false;
+        }
 
-			// Load module
-			Type moduleType = assembly.ExportedTypes.First(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
-			GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
-			globalModules.Add(name, module);
-			await module.Load();
-			if (IsConnected) _ = module.Ready();
+        FileInfo file = GetGlobalModuleDirectory().GetFiles().FirstOrDefault(f => f.Extension == ".dll" && AssemblyName.GetAssemblyName(f.FullName).Name == name);
+        if (file == null)
+        {
+            Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it does not exist");
+            return false;
+        }
+        if (!await IsValidModule(file.FullName, true))
+        {
+            Logger.Log(LogLevel.Error, 0, "ModuleLoader", $"Global module \"{name}\" was not loaded because it is not a valid module");
+            return false;
+        }
 
-			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module loaded: " + name);
-			return true;
-		}
-		internal static async Task<(int, int)> LoadAllGlobalModulesAsync()
-		{
-			int totalCount = 0;
-			int loadedCount = 0;
+        // Load Assembly
+        Assembly assembly;
+        using (FileStream fs = new(file.FullName, FileMode.Open, FileAccess.Read))
+        {
+            assembly = new AssemblyLoadContext(name, true).LoadFromStream(fs);
+        }
 
-			foreach (FileInfo file in GetGlobalModuleDirectory().GetFiles().Where(f => f.Extension == ".dll"))
-			{
-				totalCount++;
-				if (await LoadGlobalModuleAsync(AssemblyName.GetAssemblyName(file.FullName).Name)) loadedCount++;
-			}
+        // Load module
+        Type moduleType = assembly.ExportedTypes.First(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
+        GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
+        globalModules.Add(name, module);
+        await module.Load();
+        if (IsConnected) _ = module.Ready();
 
-			Logger.Log(loadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 0, "ModuleLoader", $"Loaded {loadedCount}/{totalCount} global modules");
-			return (loadedCount, totalCount);
-		}
+        Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module loaded: " + name);
+        return true;
+    }
+    internal static async Task<(int, int)> LoadAllGlobalModulesAsync()
+    {
+        int totalCount = 0;
+        int loadedCount = 0;
 
-		internal static async Task<bool> UnloadGlobalModuleAsync(string name)
-		{
-			bool isLoaded = globalModules.ContainsKey(name);
-			if (!isLoaded)
-			{
-				Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" could not be unloaded because no module of that name is currently loaded");
-				return false;
-			}
+        foreach (FileInfo file in GetGlobalModuleDirectory().GetFiles().Where(f => f.Extension == ".dll"))
+        {
+            totalCount++;
+            if (await LoadGlobalModuleAsync(AssemblyName.GetAssemblyName(file.FullName).Name)) loadedCount++;
+        }
 
-			var toUnload = new WeakReference(globalModules[name]);
+        Logger.Log(loadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 0, "ModuleLoader", $"Loaded {loadedCount}/{totalCount} global modules");
+        return (loadedCount, totalCount);
+    }
 
-			await (toUnload.Target as GlobalIrisModule).Unload();
-			globalModules.Remove(name);
-			(toUnload.Target as GlobalIrisModule).GetAssemblyLoadContext().Unload();
+    internal static async Task<bool> UnloadGlobalModuleAsync(string name)
+    {
+        bool isLoaded = globalModules.ContainsKey(name);
+        if (!isLoaded)
+        {
+            Logger.Log(LogLevel.Warning, 0, "ModuleLoader", $"Global module \"{name}\" could not be unloaded because no module of that name is currently loaded");
+            return false;
+        }
 
-			for (int i = 0; i < 10 && toUnload.IsAlive; i++)
-				GC.Collect();
+        WeakReference toUnload = new(globalModules[name]);
 
-			Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
-			return true;
-		}
-		internal static async Task<(int, int)> UnloadAllGlobalModulesAsync()
-		{
-			int totalCount = 0;
-			int unloadedCount = 0;
+        await (toUnload.Target as GlobalIrisModule).Unload();
+        globalModules.Remove(name);
+        (toUnload.Target as GlobalIrisModule).GetAssemblyLoadContext().Unload();
 
-			foreach (GlobalIrisModule module in globalModules.Values)
-			{
-				totalCount++;
-				if (await UnloadGlobalModuleAsync(module.Name)) unloadedCount++;
-			}
+        for (int i = 0; i < 10 && toUnload.IsAlive; i++)
+            GC.Collect();
 
-			Logger.Log(unloadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{totalCount} global modules");
-			return (unloadedCount, totalCount);
-		}
-		#endregion
-		#region Guild Modules
-		internal static Dictionary<string, GuildIrisModule> GetGuildModules(DiscordGuild guild) => GetGuildModules(guild?.Id);
-		internal static Dictionary<string, GuildIrisModule> GetGuildModules(ulong? guildId) => guildId.HasValue && guildModules.ContainsKey(guildId.Value) ? guildModules[guildId.Value] : new Dictionary<string, GuildIrisModule>();
-		#endregion
-	}
+        Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module unloaded: " + name);
+        return true;
+    }
+    internal static async Task<(int, int)> UnloadAllGlobalModulesAsync()
+    {
+        int totalCount = 0;
+        int unloadedCount = 0;
+
+        foreach (GlobalIrisModule module in globalModules.Values)
+        {
+            totalCount++;
+            if (await UnloadGlobalModuleAsync(module.Name)) unloadedCount++;
+        }
+
+        Logger.Log(unloadedCount == totalCount ? LogLevel.Information : LogLevel.Warning, 420, "ModuleLoader", $"Unloaded {unloadedCount}/{totalCount} global modules");
+        return (unloadedCount, totalCount);
+    }
+    #endregion
+    #region Guild Modules
+    internal static Dictionary<string, GuildIrisModule> GetGuildModules(DiscordGuild guild)
+    {
+        return GetGuildModules(guild?.Id);
+    }
+
+    internal static Dictionary<string, GuildIrisModule> GetGuildModules(ulong? guildId)
+    {
+        return guildId.HasValue && guildModules.ContainsKey(guildId.Value) ? guildModules[guildId.Value] : new Dictionary<string, GuildIrisModule>();
+    }
+    #endregion
 }
