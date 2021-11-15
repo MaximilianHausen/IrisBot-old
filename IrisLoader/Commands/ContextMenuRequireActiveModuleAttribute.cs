@@ -12,10 +12,7 @@ namespace IrisLoader.Commands;
 public class ContextMenuRequireActiveModuleAttribute : ContextMenuCheckBaseAttribute
 {
     private readonly BaseIrisModule requiredModule;
-    public ContextMenuRequireActiveModuleAttribute(Type moduleType)
-    {
-        requiredModule = Loader.GetModuleByType(moduleType);
-    }
+    public ContextMenuRequireActiveModuleAttribute(Type moduleType) => requiredModule = Loader.GetModuleByType(moduleType);
 
     public override async Task<bool> ExecuteChecksAsync(ContextMenuContext ctx)
     {

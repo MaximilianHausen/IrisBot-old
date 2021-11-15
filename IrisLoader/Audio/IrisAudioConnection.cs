@@ -48,10 +48,7 @@ public class IrisAudioConnection : IDisposable
         track.PlaythoughFinished += () => singleTracks.Remove(time);
     }
 
-    public void NextTrack()
-    {
-        generalQueue.Dequeue().PlaythoughFinished -= NextTrack;
-    }
+    public void NextTrack() => generalQueue.Dequeue().PlaythoughFinished -= NextTrack;
 
     internal IEnumerable<AudioTrack> GetPlayingTracks()
     {

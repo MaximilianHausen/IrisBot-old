@@ -11,15 +11,9 @@ namespace IrisLoader.Commands;
 public class SlashCustomRequireGuildAttribute : SlashCheckBaseAttribute
 {
     private readonly string message;
-    public SlashCustomRequireGuildAttribute(string errormessage)
-    {
-        message = errormessage;
-    }
+    public SlashCustomRequireGuildAttribute(string errormessage) => message = errormessage;
 
-    public SlashCustomRequireGuildAttribute()
-    {
-        message = null;
-    }
+    public SlashCustomRequireGuildAttribute() => message = null;
 
     public override async Task<bool> ExecuteChecksAsync(InteractionContext ctx)
     {

@@ -58,10 +58,7 @@ internal static class AudioConnectionManager
         Loader.Client.VoiceStateUpdated -= VoiceStateUpdated;
     }
 
-    internal static IrisAudioConnection GetConnection(DiscordChannel channel)
-    {
-        return connections.GetValueOrDefault(channel.Id);
-    }
+    internal static IrisAudioConnection GetConnection(DiscordChannel channel) => connections.GetValueOrDefault(channel.Id);
 
     private static async Task VoiceStateUpdated(DiscordClient textClient, VoiceStateUpdateEventArgs args)
     {

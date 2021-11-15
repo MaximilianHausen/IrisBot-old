@@ -27,8 +27,5 @@ public class EmojiJsonConverter : JsonConverter<DiscordEmoji>
         return null;
     }
 
-    public override void Write(Utf8JsonWriter writer, DiscordEmoji value, JsonSerializerOptions options)
-    {
-        writer.WriteNumberValue(value.Id);
-    }
+    public override void Write(Utf8JsonWriter writer, DiscordEmoji value, JsonSerializerOptions options) => writer.WriteNumberValue(value.Id);
 }

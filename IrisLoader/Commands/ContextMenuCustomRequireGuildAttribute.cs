@@ -11,15 +11,9 @@ namespace IrisLoader.Commands;
 public class ContextMenuCustomRequireGuildAttribute : ContextMenuCheckBaseAttribute
 {
     private readonly string message;
-    public ContextMenuCustomRequireGuildAttribute(string errormessage)
-    {
-        message = errormessage;
-    }
+    public ContextMenuCustomRequireGuildAttribute(string errormessage) => message = errormessage;
 
-    public ContextMenuCustomRequireGuildAttribute()
-    {
-        message = null;
-    }
+    public ContextMenuCustomRequireGuildAttribute() => message = null;
 
     public override async Task<bool> ExecuteChecksAsync(ContextMenuContext ctx)
     {

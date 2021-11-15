@@ -14,10 +14,7 @@ namespace AntiSpam
     {
         private readonly List<DiscordMessage> messageCache = new();
         public static AntiSpamModule Instance { get; private set; }
-        public AntiSpamModule()
-        {
-            Instance = this;
-        }
+        public AntiSpamModule() => Instance = this;
 
         public override Task Load()
         {
@@ -43,10 +40,7 @@ namespace AntiSpam
             return Task.CompletedTask;
         }
 
-        public override bool IsActive(DiscordGuild guild)
-        {
-            return Connection.GetSettings<AntiSpamSettingsModel>(guild).Active;
-        }
+        public override bool IsActive(DiscordGuild guild) => Connection.GetSettings<AntiSpamSettingsModel>(guild).Active;
 
         public override void SetActive(DiscordGuild guild, bool state)
         {
@@ -109,10 +103,7 @@ namespace AntiSpam
 
             return Task.CompletedTask;
         }
-        public async Task ProcessReminder(BaseIrisModule sender, ReminderEventArgs args)
-        {
-            await UnmuteMemberAsync(await (await Connection.Client.GetShard(ulong.Parse(args.Values[0])).GetGuildAsync(ulong.Parse(args.Values[0]))).GetMemberAsync(ulong.Parse(args.Values[1])));
-        }
+        public async Task ProcessReminder(BaseIrisModule sender, ReminderEventArgs args) => await UnmuteMemberAsync(await (await Connection.Client.GetShard(ulong.Parse(args.Values[0])).GetGuildAsync(ulong.Parse(args.Values[0]))).GetMemberAsync(ulong.Parse(args.Values[1])));
 
         public async Task MuteMemberAsync(DiscordMember member, bool respectAutoMuteSetting = false)
         {

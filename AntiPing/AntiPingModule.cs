@@ -11,10 +11,7 @@ namespace AntiPing;
 public class AntiPingModule : GlobalIrisModule
 {
     public static AntiPingModule Instance { get; private set; }
-    public AntiPingModule()
-    {
-        Instance = this;
-    }
+    public AntiPingModule() => Instance = this;
 
     public override Task Load()
     {
@@ -40,10 +37,7 @@ public class AntiPingModule : GlobalIrisModule
         return Task.CompletedTask;
     }
 
-    public override bool IsActive(DiscordGuild guild)
-    {
-        return Connection.GetSettings<AntiPingSettingsModel>(guild).Active;
-    }
+    public override bool IsActive(DiscordGuild guild) => Connection.GetSettings<AntiPingSettingsModel>(guild).Active;
 
     public override void SetActive(DiscordGuild guild, bool state)
     {
@@ -95,8 +89,5 @@ public class AntiPingModule : GlobalIrisModule
         return Task.CompletedTask;
     }
 
-    private bool HasReplyPing(DiscordMessage message)
-    {
-        return message.ReferencedMessage != null && message.MentionedUsers.Contains(message.ReferencedMessage.Author);
-    }
+    private bool HasReplyPing(DiscordMessage message) => message.ReferencedMessage != null && message.MentionedUsers.Contains(message.ReferencedMessage.Author);
 }

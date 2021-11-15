@@ -12,10 +12,7 @@ namespace IrisLoader.Commands;
 public class SlashRequireActiveModuleAttribute : SlashCheckBaseAttribute
 {
     private readonly BaseIrisModule requiredModule;
-    public SlashRequireActiveModuleAttribute(Type moduleType)
-    {
-        requiredModule = Loader.GetModuleByType(moduleType);
-    }
+    public SlashRequireActiveModuleAttribute(Type moduleType) => requiredModule = Loader.GetModuleByType(moduleType);
 
     public override async Task<bool> ExecuteChecksAsync(InteractionContext ctx)
     {

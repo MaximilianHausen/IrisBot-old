@@ -33,10 +33,7 @@ internal static class Loader
     private static readonly Dictionary<string, GlobalIrisModule> globalModules = new();
     private static readonly Dictionary<ulong, Dictionary<string, GuildIrisModule>> guildModules = new();
 
-    internal static void Main()
-    {
-        MainAsync().GetAwaiter().GetResult();
-    }
+    internal static void Main() => MainAsync().GetAwaiter().GetResult();
 
     internal static async Task MainAsync()
     {
@@ -156,15 +153,9 @@ internal static class Loader
 
         return Task.FromResult(isValid);
     }
-    internal static BaseIrisModule GetModuleByType(Type type)
-    {
-        return globalModules.Select(m => m.Value).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
-    }
+    internal static BaseIrisModule GetModuleByType(Type type) => globalModules.Select(m => m.Value).FirstOrDefault(m => m.GetType() == type) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.GetType() == type) as BaseIrisModule;
 
-    internal static BaseIrisModule GetModuleByName(string name)
-    {
-        return globalModules.Select(m => m.Value).FirstOrDefault(m => m.Name == name) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.Name == name) as BaseIrisModule;
-    }
+    internal static BaseIrisModule GetModuleByName(string name) => globalModules.Select(m => m.Value).FirstOrDefault(m => m.Name == name) ?? guildModules.SelectMany(m => m.Value.Values).Select(m => m).FirstOrDefault(m => m.Name == name) as BaseIrisModule;
 
     #region Global Modules
     private static DirectoryInfo GetGlobalModuleDirectory()
@@ -172,10 +163,7 @@ internal static class Loader
         Directory.CreateDirectory("./Modules/Global");
         return new DirectoryInfo("./Modules/Global");
     }
-    internal static Dictionary<string, GlobalIrisModule> GetGlobalModules()
-    {
-        return globalModules;
-    }
+    internal static Dictionary<string, GlobalIrisModule> GetGlobalModules() => globalModules;
 
     internal static async Task<bool> LoadGlobalModuleAsync(string name)
     {
@@ -271,14 +259,8 @@ internal static class Loader
     }
     #endregion
     #region Guild Modules
-    internal static Dictionary<string, GuildIrisModule> GetGuildModules(DiscordGuild guild)
-    {
-        return GetGuildModules(guild?.Id);
-    }
+    internal static Dictionary<string, GuildIrisModule> GetGuildModules(DiscordGuild guild) => GetGuildModules(guild?.Id);
 
-    internal static Dictionary<string, GuildIrisModule> GetGuildModules(ulong? guildId)
-    {
-        return guildId.HasValue && guildModules.ContainsKey(guildId.Value) ? guildModules[guildId.Value] : new Dictionary<string, GuildIrisModule>();
-    }
+    internal static Dictionary<string, GuildIrisModule> GetGuildModules(ulong? guildId) => guildId.HasValue && guildModules.ContainsKey(guildId.Value) ? guildModules[guildId.Value] : new Dictionary<string, GuildIrisModule>();
     #endregion
 }
