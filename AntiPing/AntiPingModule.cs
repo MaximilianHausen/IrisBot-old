@@ -13,7 +13,7 @@ public class AntiPingModule : GlobalIrisModule
     public static AntiPingModule Instance { get; private set; }
     public AntiPingModule() => Instance = this;
 
-    public override Task Load()
+    public override Task Loaded()
     {
         Connection.Client.MessageCreated += MessageCreated;
         Connection.Client.GuildEmojisUpdated += EmojisEdited;
@@ -22,7 +22,7 @@ public class AntiPingModule : GlobalIrisModule
         return Task.CompletedTask;
     }
 
-    public override Task Unload()
+    public override Task Unloaded()
     {
         Connection.Client.MessageCreated -= MessageCreated;
         Connection.Client.GuildEmojisUpdated -= EmojisEdited;
@@ -37,18 +37,9 @@ public class AntiPingModule : GlobalIrisModule
         return Task.CompletedTask;
     }
 
-    public override bool IsActive(DiscordGuild guild) => Connection.GetSettings<AntiPingSettingsModel>(guild).Active;
-
-    public override void SetActive(DiscordGuild guild, bool state)
-    {
-        AntiPingSettingsModel settings = Connection.GetSettings<AntiPingSettingsModel>(guild);
-        settings.Active = state;
-        Connection.SetSettings(guild, settings);
-    }
-
     public async Task MessageCreated(DiscordClient client, MessageCreateEventArgs args)
     {
-        if (args.Guild == null || args.Author.IsBot || !Connection.GetSettings<AntiPingSettingsModel>(args.Guild).Active) return;
+        if (args.Guild == null || args.Author.IsBot) return;
 
         AntiPingSettingsModel settings = Connection.GetSettings<AntiPingSettingsModel>(args.Guild);
         if (HasReplyPing(args.Message) && ((args.Message.Timestamp - args.Message.ReferencedMessage.Timestamp) < new TimeSpan(0, 30, 0)))

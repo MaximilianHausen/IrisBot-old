@@ -31,16 +31,15 @@ public class LoaderCommands : ApplicationCommandModule
             public async Task ListCommand(InteractionContext ctx)
             {
                 ModernEmbedBuilder embedBuilder;
-                // name, active, true:global/false:guild
-                List<(string, bool, bool)> moduleList = new();
-                Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, m.Value.IsActive(ctx.Guild), true)));
-                Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, m.Value.IsActive(), false)));
+                // name, true:global/false:guild
+                List<(string, bool)> moduleList = new();
+                Loader.GetGlobalModules().ForEach(m => moduleList.Add((m.Key, true)));
+                Loader.GetGuildModules(ctx.Guild).ForEach(m => moduleList.Add((m.Key, false)));
 
                 if (moduleList.Count > 0)
                 {
                     string nameString = string.Join('\n', moduleList.Select(m => m.Item1));
-                    string statusString = string.Join('\n', moduleList.Select(m => m.Item2 ? ":white_check_mark:" : ":x:"));
-                    string scopeString = string.Join('\n', moduleList.Select(m => m.Item3 ? "global" : "lokal"));
+                    string scopeString = string.Join('\n', moduleList.Select(m => m.Item2 ? "global" : "lokal"));
 
                     embedBuilder = new ModernEmbedBuilder
                     {
@@ -49,7 +48,6 @@ public class LoaderCommands : ApplicationCommandModule
                         Fields =
                         {
                             ("Modul", nameString, true),
-                            ("Status", statusString, true),
                             ("Ursprung", scopeString, true)
                         }
                     };
@@ -68,40 +66,6 @@ public class LoaderCommands : ApplicationCommandModule
                 }
 
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
-            }
-
-            [SlashCustomRequireGuild]
-            [SlashRequireIrisPermission("ToggleModules")]
-            [SlashCommand("toggle", "Ein Modul an-/ausschalten")]
-            public async Task ToggleCommand(InteractionContext ctx, [Autocomplete(typeof(ModuleAutocompleteProvider))][Option("module", "Name des Moduls", true)] string moduleName)
-            {
-                ModernEmbedBuilder embedBuilder;
-                bool prevState;
-                GlobalIrisModule globalModule = Loader.GetGlobalModules().Where(m => m.Key == moduleName).SingleOrDefault().Value;
-                GuildIrisModule guildModule = Loader.GetGuildModules(ctx.Guild).Where(m => m.Key == moduleName).SingleOrDefault().Value;
-
-                if (globalModule != null)
-                {
-                    prevState = globalModule.IsActive(ctx.Guild);
-                    globalModule.SetActive(ctx.Guild, !prevState);
-                }
-                else
-                {
-                    prevState = guildModule.IsActive();
-                    guildModule.SetActive(!prevState);
-                }
-
-                embedBuilder = new ModernEmbedBuilder
-                {
-                    Title = prevState ? "Modul deaktiviert" : "Modul aktiviert",
-                    Color = prevState ? 0xED4245 : 0x57F287,
-                    Fields =
-                    {
-                        ("Details", "Das Modul " + moduleName + " ist jetzt " + (prevState ? "deaktiviert" : "aktiviert"))
-                    }
-                };
-
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(embedBuilder.Build()));
             }
 
             [SlashRequireIrisPermission("ManageModules")]

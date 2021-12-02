@@ -2,7 +2,6 @@
 
 public class AntiSpamSettingsModel
 {
-    public bool Active { get; set; } = false;
     public ulong? MuteRoleId { get; set; } = null;
     /// <summary> In minutes </summary>
     public ulong MuteDuration { get; set; } = 30;

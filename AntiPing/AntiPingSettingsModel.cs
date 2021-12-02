@@ -6,8 +6,6 @@ namespace AntiPing;
 
 public class AntiPingSettingsModel
 {
-    public bool Active { get; set; } = false;
-
     // Automatic reaction
     public bool AutoReact { get; set; } = false;
     [JsonConverter(typeof(EmojiJsonConverter))]

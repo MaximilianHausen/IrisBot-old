@@ -38,7 +38,6 @@ public class AntiPingCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiPing")]
-            [SlashRequireActiveModule(typeof(AntiPingModule))]
             [SlashCommand("autoreact", "Schaltet das automatische Reagieren auf Antworten mit unnötigen Pings an oder aus")]
             public async Task AutoReactCommand(InteractionContext ctx, [Option("value", "Ob auf unnötige Pings automatisch reagiert werden soll")] bool? value = null)
             {
@@ -90,7 +89,6 @@ public class AntiPingCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = isEphemeral }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiPing")]
-            [SlashRequireActiveModule(typeof(AntiPingModule))]
             [SlashCommand("reactemoji", "Der Emoji, der für das automatische Reagieren verwendet wird")]
             public async Task ReactEmojiCommand(InteractionContext ctx, [Option("emoji", "Der Emoji, der für die automatische Reaktion verwendet wird")] string emoji = null)
             {
@@ -185,7 +183,6 @@ public class AntiPingCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = isEphemeral }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiPing")]
-            [SlashRequireActiveModule(typeof(AntiPingModule))]
             [SlashCommand("pingback", "Schaltet das zurückpingen an oder aus")]
             public async Task PingBackCommand(InteractionContext ctx, [Option("value", "Ob bei unnötigen Pings nach einiger Zeit zurückgepingt werden soll")] bool? value = null)
             {
@@ -223,7 +220,6 @@ public class AntiPingCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = !value.HasValue }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiPing")]
-            [SlashRequireActiveModule(typeof(AntiPingModule))]
             [SlashCommand("pingtime", "Setzt die Verzögerung, nach der zurückgepingt werden soll")]
             public async Task PingTimeCommand(InteractionContext ctx, [Option("min", "Minimale Zeit in Minuten")] long? min = null, [Option("max", "Maximale Zeit in Minuten")] long? max = null)
             {

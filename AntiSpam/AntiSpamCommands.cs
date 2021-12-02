@@ -39,7 +39,6 @@ public class AntiSpamCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = true }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiSpam")]
-            [SlashRequireActiveModule(typeof(AntiSpamModule))]
             [SlashCommand("automute", "Schaltet das automatische Stummschalten von Spammern an oder aus")]
             public async Task AutoMuteCommand(InteractionContext ctx, [Option("value", "Ob Spammer automatisch gemutet werden sollen")] bool? value = null)
             {
@@ -94,7 +93,6 @@ public class AntiSpamCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = isEphemeral }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiSpam")]
-            [SlashRequireActiveModule(typeof(AntiSpamModule))]
             [SlashCommand("muterole", "Setzt die zum Stummschalten verwendete Rolle")]
             public async Task MuteRoleCommand(InteractionContext ctx, [Option("role", "Die Rolle, die zum muten verwendet werden soll")] DiscordRole role = null)
             {
@@ -163,7 +161,6 @@ public class AntiSpamCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = !canGrantRole }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiSpam")]
-            [SlashRequireActiveModule(typeof(AntiSpamModule))]
             [SlashCommand("muteduration", "Die Zeit, für die Leute gemutet werden sollen")]
             public async Task MuteDurationCommand(InteractionContext ctx, [Option("weeks", "Wochen, für die die Mute-Rolle vergeben wird")] long weeks = 0, [Option("days", "Tage, für die die Mute-Rolle vergeben wird")] long days = 0, [Option("hours", "Stunden, für die die Mute-Rolle vergeben wird")] long hours = 0, [Option("minutes", "Minuten, für die die Mute-Rolle vergeben wird")] long minutes = 0)
             {
@@ -215,7 +212,6 @@ public class AntiSpamCommands : ApplicationCommandModule
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder() { IsEphemeral = weeks + days + hours + minutes == 0 }.AddEmbed(embedBuilder.Build()));
             }
             [SlashRequireIrisPermission("ManageAntiSpam")]
-            [SlashRequireActiveModule(typeof(AntiSpamModule))]
             [SlashCommand("autodelete", "Schaltet das automatische Löschen von Spam an oder aus")]
             public async Task AutoDeleteCommand(InteractionContext ctx, [Option("value", "Ob Spam automatisch gelöscht werden sollen")] bool? value = null)
             {
@@ -256,7 +252,6 @@ public class AntiSpamCommands : ApplicationCommandModule
     }
 
     [ContextMenuCustomRequireGuild]
-    [ContextMenuRequireActiveModule(typeof(AntiSpamModule))]
     [ContextMenuRequireIrisPermission("Moderator")]
     [ContextMenu(ApplicationCommandType.UserContextMenu, "Mute")]
     public async Task MuteContextCommand(ContextMenuContext ctx)

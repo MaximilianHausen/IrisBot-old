@@ -201,7 +201,7 @@ internal static class Loader
         Type moduleType = assembly.ExportedTypes.First(t => typeof(GlobalIrisModule).IsAssignableFrom(t));
         GlobalIrisModule module = Activator.CreateInstance(moduleType) as GlobalIrisModule;
         globalModules.Add(name, module);
-        await module.Load();
+        await module.Loaded();
         if (IsConnected) _ = module.Ready();
 
         Logger.Log(LogLevel.Information, 0, "ModuleLoader", "Global module loaded: " + name);
@@ -233,7 +233,7 @@ internal static class Loader
 
         WeakReference toUnload = new(globalModules[name]);
 
-        await (toUnload.Target as GlobalIrisModule).Unload();
+        await (toUnload.Target as GlobalIrisModule).Unloaded();
         globalModules.Remove(name);
         (toUnload.Target as GlobalIrisModule).GetAssemblyLoadContext().Unload();
 

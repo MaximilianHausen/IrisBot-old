@@ -8,9 +8,9 @@ public abstract class BaseIrisModule
     public string Name => GetType().Assembly.GetName().Name;
 
     /// <summary> Is called after the module was loaded. </summary>
-    public abstract Task Load();
+    public abstract Task Loaded();
     /// <summary> Called after the GuildDownloadCompleted event is called </summary>
     public abstract Task Ready();
     /// <summary> Is called before the module is unloaded. </summary>
-    public abstract Task Unload();
+    public abstract Task Unloaded();
 }
